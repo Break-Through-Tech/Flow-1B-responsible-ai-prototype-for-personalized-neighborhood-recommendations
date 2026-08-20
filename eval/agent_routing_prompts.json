@@ -1,0 +1,48 @@
+[
+  {
+    "prompt_id": "R1",
+    "user_prompt": "We're moving from NYC with a co-leaser on the lease. Budget $2500, want transit and walkable. Recommend areas.",
+    "expected_tool": "recommend",
+    "expected_args": {
+      "budget_max": 2500,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags_contains": ["transit", "walkable"]
+    }
+  },
+  {
+    "prompt_id": "R2",
+    "user_prompt": "What columns are in the dataset?",
+    "expected_tool": "schema",
+    "expected_args": {}
+  },
+  {
+    "prompt_id": "R3",
+    "user_prompt": "What do people say about transit in ZIP 33130?",
+    "expected_tool": "crowd_themes",
+    "expected_args": { "zip_code": "33130" }
+  },
+  {
+    "prompt_id": "R4",
+    "user_prompt": "Show me public stats for Wynwood.",
+    "expected_tool": "area_stats",
+    "expected_args": { "zip_code": "33127" }
+  },
+  {
+    "prompt_id": "R5",
+    "user_prompt": "What are the ethical limitations of this tool?",
+    "expected_tool": "ethics",
+    "expected_args": {}
+  },
+  {
+    "prompt_id": "R6",
+    "user_prompt": "I live alone and want co-living under $1800 near transit.",
+    "expected_tool": "recommend",
+    "expected_args": {
+      "budget_max": 1800,
+      "household": "alone",
+      "housing_preference": "co_living",
+      "tags_contains": ["transit"]
+    }
+  }
+]

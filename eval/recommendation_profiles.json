@@ -1,0 +1,52 @@
+[
+  {
+    "profile_id": "P1_nyc_couple_own_apt",
+    "description": "Moving with a co-leaser, own apartment, transit + walkable, Wynwood/Brickell/Downtown fit",
+    "budget_max": 2500,
+    "household": "with_co_leaser",
+    "housing_preference": "own_apartment",
+    "tags": ["transit", "walkable"],
+    "expected_relevant_zips": ["33130", "33128", "33127"],
+    "not_relevant_zips": ["33186", "33156"]
+  },
+  {
+    "profile_id": "P2_solo_own_apt_social",
+    "description": "Solo mover, own apartment, social + walkable",
+    "budget_max": 2000,
+    "household": "alone",
+    "housing_preference": "own_apartment",
+    "tags": ["social", "walkable"],
+    "expected_relevant_zips": ["33127", "33130", "33128"],
+    "not_relevant_zips": ["33185"]
+  },
+  {
+    "profile_id": "P3_solo_coliving_budget",
+    "description": "Solo, wants co-living, downtown transit",
+    "budget_max": 1800,
+    "household": "alone",
+    "housing_preference": "co_living",
+    "tags": ["co_living", "transit"],
+    "expected_relevant_zips": ["33128", "33130"],
+    "not_relevant_zips": ["33156"]
+  },
+  {
+    "profile_id": "P4_quiet_pets_budget",
+    "description": "Quiet + pet-friendly, moderate budget",
+    "budget_max": 2200,
+    "household": "with_co_leaser",
+    "housing_preference": "own_apartment",
+    "tags": ["quiet", "pet_friendly"],
+    "expected_relevant_zips": ["33133", "33134", "33156"],
+    "not_relevant_zips": ["33139"]
+  },
+  {
+    "profile_id": "P5_brickell_focus",
+    "description": "Explicit Brickell interest, transit, higher budget",
+    "budget_max": 3000,
+    "household": "with_co_leaser",
+    "housing_preference": "own_apartment",
+    "tags": ["transit", "social"],
+    "expected_relevant_zips": ["33130", "33128"],
+    "not_relevant_zips": ["33181"]
+  }
+]
