@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "tags": {
+    "transit":            {"parent": null, "source": "seed", "description": "Public transit access, easy commute without a car"},
+    "metrorail":          {"parent": "transit", "source": "seed", "description": "Metrorail station nearby"},
+    "metromover":         {"parent": "transit", "source": "seed", "description": "Metromover (free downtown people mover) nearby"},
+    "bus_access":         {"parent": "transit", "source": "seed", "description": "Convenient bus routes"},
+
+    "walkable":           {"parent": null, "source": "seed", "description": "Daily errands and outings are doable on foot"},
+    "car_needed":         {"parent": null, "source": "seed", "description": "Hard to get around without a car"},
+    "central":            {"parent": null, "source": "seed", "description": "Central location, close to downtown or jobs"},
+
+    "beach":              {"parent": null, "source": "seed", "description": "Near the beach or beach lifestyle"},
+    "beach_culture":      {"parent": "beach", "source": "seed", "description": "Social life built around the beach"},
+    "waterfront":         {"parent": null, "source": "seed", "description": "Bay, river, marina, or water views"},
+
+    "parks_green":        {"parent": null, "source": "seed", "description": "Parks, trees, green space"},
+    "parks":              {"parent": "parks_green", "source": "seed", "description": "Parks nearby"},
+    "tree_lined_streets": {"parent": "parks_green", "source": "seed", "description": "Shaded, tree-lined streets"},
+
+    "quiet":              {"parent": null, "source": "seed", "description": "Calm, low noise, peaceful streets"},
+    "noisy":              {"parent": null, "source": "seed", "description": "Noise from streets, nightlife, or construction"},
+    "street_noise":       {"parent": "noisy", "source": "seed", "description": "Traffic or street noise"},
+    "weekend_noise":      {"parent": "noisy", "source": "seed", "description": "Loud mainly on weekends"},
+
+    "social":             {"parent": null, "source": "seed", "description": "Easy to meet people, active social life"},
+    "events":             {"parent": "social", "source": "seed", "description": "Frequent events and meetups"},
+    "networking":         {"parent": "social", "source": "seed", "description": "Professional networking scene"},
+    "nightlife":          {"parent": null, "source": "seed", "description": "Bars, clubs, late-night scene"},
+    "after_work_scene":   {"parent": "nightlife", "source": "seed", "description": "Happy hours and after-work outings"},
+    "community":          {"parent": null, "source": "seed", "description": "Neighborly, tight-knit, strong local feel"},
+    "food_scene":         {"parent": null, "source": "seed", "description": "Restaurants, cafes, food culture"},
+    "arts_creative":      {"parent": null, "source": "seed", "description": "Galleries, murals, creative or artsy scene"},
+    "newcomer_friendly":  {"parent": null, "source": "seed", "description": "Easy to settle in when new to the city"},
+
+    "pet_friendly":       {"parent": null, "source": "seed", "description": "Dog owners, pet-friendly buildings, places to walk pets"},
+
+    "co_living":          {"parent": null, "source": "seed", "description": "Shared housing or roommates are common"},
+    "shared_lofts":       {"parent": "co_living", "source": "seed", "description": "Shared loft-style living"},
+    "roommate_friendly":  {"parent": "co_living", "source": "seed", "description": "Buildings or areas where roommates are common"},
+
+    "residential":        {"parent": null, "source": "seed", "description": "Mostly homes and residential streets"},
+    "single_family_homes":{"parent": "residential", "source": "seed", "description": "Detached houses"},
+    "yards":              {"parent": "residential", "source": "seed", "description": "Homes with yards or outdoor space"},
+    "high_rise":          {"parent": null, "source": "seed", "description": "Towers, condos, high-rise living"}
+  }
+}
