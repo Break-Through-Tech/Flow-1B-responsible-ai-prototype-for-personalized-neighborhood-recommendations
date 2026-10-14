@@ -1,6 +1,12 @@
 # Om's recommendation engine and NLP collaboration plan
 
-Prepared September 30, 2026. This is an implementation plan, not a report of completed engine work. Dates below are proposed work targets; the existing team plan uses December 15 as a provisional submission date.
+Prepared September 30, 2026; implementation update October 11. Dates below are proposed work targets; the existing team plan uses December 15 as a provisional submission date.
+
+## Implementation update: October 11, 2026
+
+Fast-forwarded Om to main at `5606a1b`, including the merged cleaning datasets. Implemented the request/preference contract and budget behavior (#8), demo-theme lookup preserving original evidence (#9), deterministic ranker (#11; requested-feature mean by default, cosine kept as baseline), and a fixture evaluation runner supporting #12. See [the baseline guide](docs/recommender_baseline.md) for commands, API behavior, data decisions, and results.
+
+The implementation passes 40 tests. The default scorer is now a requested-feature mean; the original cosine baseline penalized areas for strengths the user did not request and is kept for comparison. Precision@3 is 0.1333 for both, Precision@5 rose from 0.08 to 0.16 and MRR from 0.155 to 0.320, with 100% budget compliance across the five nonempty fixtures. This is the October baseline; the proposed October 9 milestone was not met. Full MCP contracts (#5), MCP server/stub (#10), real-text NLP extraction, and ranking improvements remain outstanding. No GitHub task status was changed. The dated plan and repository snapshot below are retained as planning history; the original statement that cleaning changes are unmerged is superseded by this update.
 
 ## Verified GitHub assignments
 
