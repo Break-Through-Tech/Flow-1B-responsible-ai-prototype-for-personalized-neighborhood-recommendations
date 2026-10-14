@@ -5,7 +5,7 @@ import json
 
 from .contracts import ValidationError
 from .data import DataError
-from .engine import SCORERS, Recommender
+from .engine import FEATURE_SETS, SCORERS, Recommender
 
 
 def main():
@@ -19,9 +19,12 @@ def main():
     parser.add_argument("--tags", nargs="*", default=[])
     parser.add_argument("--k", type=int, default=3)
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
+    parser.add_argument("--features", choices=FEATURE_SETS, default="provided")
     args = parser.parse_args()
     try:
-        result = Recommender(args.data_dir, scorer=args.scorer).recommend(
+        result = Recommender(
+            args.data_dir, scorer=args.scorer, feature_set=args.features
+        ).recommend(
             {
                 "budget_max": args.budget,
                 "household": args.household,

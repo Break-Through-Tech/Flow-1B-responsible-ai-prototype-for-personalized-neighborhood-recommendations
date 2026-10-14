@@ -6,22 +6,33 @@ import re
 from pathlib import Path
 
 from .contracts import ALL_FEATURES, Request, ValidationError
-from .data import load_snapshot
+from .data import apply_density, load_snapshot
 
 # "mean" averages the requested features, so strengths the user did not ask for
 # never lower a score. "cosine" is the original baseline, kept for comparison:
 # it normalizes by the whole area vector, so e.g. a strong social score makes an
 # area rank lower for a transit-only request.
 SCORERS = {"mean": "mean-v1", "cosine": "cosine-v1"}
+# "provided" uses area_features_cleaned.csv as is. "density" replaces social,
+# walkable and quiet with residential density (see data.apply_density); it is a
+# prototype until the data pipeline owns it.
+FEATURE_SETS = ("provided", "density")
 
 
 class Recommender:
-    def __init__(self, data_dir: str | Path = "data", scorer: str = "mean"):
+    def __init__(
+        self, data_dir: str | Path = "data", scorer: str = "mean", feature_set: str = "provided"
+    ):
         if scorer not in SCORERS:
             raise ValueError(f"scorer must be one of {', '.join(SCORERS)}.")
+        if feature_set not in FEATURE_SETS:
+            raise ValueError(f"feature_set must be one of {', '.join(FEATURE_SETS)}.")
         self.scorer = scorer
         self.model_version = SCORERS[scorer]
+        self.feature_set = feature_set
         self.areas, self.evidence, self.data_version = load_snapshot(Path(data_dir))
+        if feature_set == "density":
+            self.data_version.update(apply_density(Path(data_dir), self.areas))
         self.constant_features = {}
         for feature in ALL_FEATURES:
             values = {area[feature] for area in self.areas if area[feature] is not None}
@@ -103,6 +114,7 @@ class Recommender:
         response = {
             "schema_version": "1",
             "model_version": self.model_version,
+            "feature_set": self.feature_set,
             "data_version": self.data_version.copy(),
             "status": "ok",
             "results": [],
@@ -129,6 +141,11 @@ class Recommender:
         features, user = self.features(request)
         response["feature_order"] = list(features)
         response["preference_vector"] = list(user)
+        if self.feature_set == "density":
+            response["warnings"].append(
+                "social, walkable and quiet are derived from residential population density; "
+                "they do not measure nightlife, sidewalks or noise directly."
+            )
         if request.housing_preference == "co_living":
             response["warnings"].append(
                 "Co-living room prices are unavailable; area rent is a proxy."

@@ -28,6 +28,15 @@
 
 Plain-text list of Miami-Dade ZIP codes used to scope the project.
 
+## zcta_land_area.csv
+
+Land area per Miami-Dade ZCTA, extracted from the [2023 Census Gazetteer ZCTA file](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html) (public domain). 80 rows; the 5 PO-box ZIPs in `miami_dade_zctas.txt` have no ZCTA land area. Used by the recommender's `density` feature set.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| zip | string | 5-digit ZCTA |
+| land_sqmi | float | Land area in square miles (`ALAND_SQMI`) |
+
 ## area_features.csv
 
 **Blended starter file** for the recommender. Joins public rent/migration fields with normalized preference proxies (transit, social, quiet, pet-friendly, walkable). Some `area_name` labels are illustrative neighborhood names.

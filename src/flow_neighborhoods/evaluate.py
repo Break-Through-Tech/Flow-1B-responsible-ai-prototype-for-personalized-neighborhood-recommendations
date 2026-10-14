@@ -9,7 +9,7 @@ from pathlib import Path
 from statistics import mean
 
 from .contracts import Request
-from .engine import SCORERS, Recommender
+from .engine import FEATURE_SETS, SCORERS, Recommender
 
 
 def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
@@ -74,15 +74,19 @@ def main():
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--profiles", type=Path, default=Path("eval/recommendation_profiles.json"))
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
-    parser.add_argument("--output", type=Path, help="default: outputs/recommender_<scorer>.json")
+    parser.add_argument("--features", choices=FEATURE_SETS, default="provided")
+    parser.add_argument(
+        "--output", type=Path, help="default: outputs/recommender_<scorer>_<features>.json"
+    )
     args = parser.parse_args()
-    args.output = args.output or Path(f"outputs/recommender_{args.scorer}.json")
-    engine = Recommender(args.data_dir, scorer=args.scorer)
+    args.output = args.output or Path(f"outputs/recommender_{args.scorer}_{args.features}.json")
+    engine = Recommender(args.data_dir, scorer=args.scorer, feature_set=args.features)
     report = evaluate(engine, json.loads(args.profiles.read_text(encoding="utf-8")))
     code_paths = sorted(Path(__file__).parent.glob("*.py"))
     report["metadata"] = {
         "generated_at": datetime.now(UTC).isoformat(),
         "model_version": engine.model_version,
+        "feature_set": engine.feature_set,
         "data_sha256": engine.data_version,
         "code_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in code_paths},
         "profiles_sha256": hashlib.sha256(args.profiles.read_bytes()).hexdigest(),

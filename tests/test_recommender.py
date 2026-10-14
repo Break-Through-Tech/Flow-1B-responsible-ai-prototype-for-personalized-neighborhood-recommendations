@@ -54,6 +54,59 @@ def snapshot(tmp_path, areas, scorer="mean"):
     return Recommender(tmp_path, scorer=scorer)
 
 
+def density_snapshot(tmp_path, areas, population, land):
+    snapshot(tmp_path, areas)
+    write_csv(
+        tmp_path / "public_features_cleaned.csv",
+        ["zip", "population"],
+        [{"zip": z, "population": p} for z, p in population.items()],
+    )
+    write_csv(
+        tmp_path / "zcta_land_area.csv",
+        ["zip", "land_sqmi"],
+        [{"zip": z, "land_sqmi": s} for z, s in land.items()],
+    )
+    return Recommender(tmp_path, feature_set="density")
+
+
+def test_density_replaces_population_size_proxies(tmp_path):
+    # 00001 is a large, sparse ZIP: the provided proxies call it the most social.
+    areas = [area("00001", social=1), area("00002", social=0.5), area("00003", social=0.2)]
+    engine = density_snapshot(
+        tmp_path,
+        areas,
+        population={"00001": 50000, "00002": 20000, "00003": 10000},
+        land={"00001": 50, "00002": 1, "00003": 2},
+    )
+    social = engine.recommend(request(tags=["social"]))
+    assert [row["zip"] for row in social["results"]] == ["00002", "00003", "00001"]
+    assert [row["score"] for row in social["results"]] == [1, 0.5, 0]
+    assert social["feature_set"] == "density"
+    assert any("population density" in text for text in social["warnings"])
+    assert {"public_features_cleaned.csv", "zcta_land_area.csv"} <= set(social["data_version"])
+    quiet = engine.recommend(request(tags=["quiet"]))
+    assert [row["zip"] for row in quiet["results"]] == ["00001", "00003", "00002"]
+    walkable = engine.recommend(request(tags=["walkable"]))
+    assert [row["zip"] for row in walkable["results"]] == ["00002", "00003", "00001"]
+
+
+def test_density_missing_inputs_exclude_only_when_requested(tmp_path):
+    engine = density_snapshot(
+        tmp_path,
+        [area("00001", transit=1), area("00002", transit=0.5), area("00003", transit=0.2)],
+        population={"00001": 100, "00002": 100, "00003": 0},
+        land={"00001": 1, "00003": 2},
+    )
+    assert engine.recommend(request(tags=["social"]))["excluded_counts"]["missing_features"] == 2
+    assert engine.recommend(request())["returned_count"] == 3
+
+
+def test_unknown_feature_set_rejected(tmp_path):
+    snapshot(tmp_path, [area("00001")])
+    with pytest.raises(ValueError):
+        Recommender(tmp_path, feature_set="census")
+
+
 def test_budget_before_ranking_and_exact_boundary(tmp_path):
     engine = snapshot(
         tmp_path, [area("00001", 1501, transit=1), area("00002", 1500, transit=0.5, social=0.5)]
@@ -251,6 +304,10 @@ def test_repository_snapshot_and_all_profiles():
     profiles = json.loads((root / "eval/recommendation_profiles.json").read_text())
     for scorer in ("mean", "cosine"):
         check_repository_profiles(Recommender(root / "data", scorer=scorer), profiles)
+    density = Recommender(root / "data", feature_set="density")
+    check_repository_profiles(density, profiles)
+    social = density.recommend(request(budget_max=10000, tags=["social"]))
+    assert social["excluded_counts"]["missing_features"] == 0
     assert Recommender(root / "data").crowd_themes("33130")["evidence"]
 
 

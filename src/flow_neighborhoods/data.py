@@ -1,5 +1,6 @@
 """Read prepared scores and preserve original display/evidence metadata."""
 
+import bisect
 import csv
 import hashlib
 import math
@@ -47,6 +48,34 @@ def unique(rows: list[dict], key: str) -> dict[str, dict]:
             raise DataError(f"Empty or duplicate {key}: {row[key]!r}.")
         result[row[key]] = row
     return result
+
+
+def apply_density(directory: Path, areas: list[dict]) -> dict:
+    """Replace the population-size proxies with residential density percentiles.
+
+    The provided social and quiet columns are linear in ZIP population, so large
+    suburban ZIPs look "social"; walkable is ~1 for every ZIP with rent data.
+    Density (ACS population / Census land area) measures how urban an area is.
+    social and walkable become its percentile among snapshot ZIPs, quiet its
+    complement. Areas without density get None and are excluded when requested.
+    """
+    paths = [directory / "public_features_cleaned.csv", directory / "zcta_land_area.csv"]
+    population = unique(read_rows(paths[0], {"zip", "population"}), "zip")
+    land = unique(read_rows(paths[1], {"zip", "land_sqmi"}), "zip")
+    density = {}
+    for area in areas:
+        people = number(population.get(area["zip"], {}).get("population", ""))
+        sqmi = number(land.get(area["zip"], {}).get("land_sqmi", ""))
+        if people and sqmi and people > 0 and sqmi > 0:
+            density[area["zip"]] = people / sqmi
+    ordered = sorted(density.values())
+    for area in areas:
+        if area["zip"] in density:
+            share = bisect.bisect_left(ordered, density[area["zip"]]) / max(len(ordered) - 1, 1)
+            area.update(social=share, walkable=share, quiet=1 - share)
+        else:
+            area.update(social=None, walkable=None, quiet=None)
+    return {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
 
 
 def load_snapshot(directory: Path) -> tuple[list[dict], dict[str, list[dict]], dict]:
