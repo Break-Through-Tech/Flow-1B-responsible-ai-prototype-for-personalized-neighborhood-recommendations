@@ -1,0 +1,808 @@
+{
+ "vocabulary_version": 2,
+ "model": "gemini-3.5-flash-lite",
+ "locations": {
+  "33127": {
+   "snippet_count": 3,
+   "is_demo": true,
+   "tags": {
+    "walkable": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T1",
+       "quote": "Great walkability",
+       "via": null
+      }
+     ]
+    },
+    "bus_access": {
+     "level": "specific",
+     "parent": "transit",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T1",
+       "quote": "easy bus access",
+       "via": null
+      }
+     ]
+    },
+    "transit": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T1",
+       "quote": "easy bus access",
+       "via": "bus_access"
+      }
+     ]
+    },
+    "newcomer_friendly": {
+     "level": "parent",
+     "parent": null,
+     "count": 2,
+     "evidence": [
+      {
+       "snippet_id": "T1",
+       "quote": "welcoming as a newcomer",
+       "via": null
+      },
+      {
+       "snippet_id": "T13",
+       "quote": "new to Miami",
+       "via": null
+      }
+     ]
+    },
+    "events": {
+     "level": "specific",
+     "parent": "social",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T2",
+       "quote": "Lots of events",
+       "via": null
+      }
+     ]
+    },
+    "social": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T2",
+       "quote": "Lots of events",
+       "via": "events"
+      },
+      {
+       "snippet_id": "T2",
+       "quote": "people meeting up",
+       "via": null
+      }
+     ]
+    },
+    "weekend_noise": {
+     "level": "specific",
+     "parent": "noisy",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T2",
+       "quote": "loud on weekends",
+       "via": null
+      }
+     ]
+    },
+    "noisy": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T2",
+       "quote": "loud on weekends",
+       "via": "weekend_noise"
+      }
+     ]
+    },
+    "shared_lofts": {
+     "level": "specific",
+     "parent": "co_living",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T13",
+       "quote": "Shared lofts",
+       "via": null
+      }
+     ]
+    },
+    "co_living": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T13",
+       "quote": "Shared lofts",
+       "via": "shared_lofts"
+      },
+      {
+       "snippet_id": "T13",
+       "quote": "co-living",
+       "via": null
+      }
+     ]
+    },
+    "arts_creative": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T13",
+       "quote": "creatives",
+       "via": null
+      }
+     ]
+    }
+   }
+  },
+  "33128": {
+   "snippet_count": 3,
+   "is_demo": true,
+   "tags": {
+    "central": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T12",
+       "quote": "Central location",
+       "via": null
+      }
+     ]
+    },
+    "transit": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T12",
+       "quote": "easy to get around with public transit",
+       "via": null
+      }
+     ]
+    },
+    "co_living": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T14",
+       "quote": "co-living rooms",
+       "via": null
+      },
+      {
+       "snippet_id": "T14",
+       "quote": "help me meet roommates",
+       "via": "roommate_friendly"
+      }
+     ]
+    },
+    "roommate_friendly": {
+     "level": "specific",
+     "parent": "co_living",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T14",
+       "quote": "help me meet roommates",
+       "via": null
+      }
+     ]
+    },
+    "newcomer_friendly": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T14",
+       "quote": "when I first arrived",
+       "via": null
+      }
+     ]
+    },
+    "events": {
+     "level": "specific",
+     "parent": "social",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T16",
+       "quote": "Downtown events",
+       "via": null
+      }
+     ]
+    },
+    "social": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T16",
+       "quote": "Downtown events",
+       "via": "events"
+      },
+      {
+       "snippet_id": "T16",
+       "quote": "easy to build a social circle",
+       "via": null
+      }
+     ]
+    },
+    "after_work_scene": {
+     "level": "specific",
+     "parent": "nightlife",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T16",
+       "quote": "after-work scene",
+       "via": null
+      }
+     ]
+    },
+    "nightlife": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T16",
+       "quote": "after-work scene",
+       "via": "after_work_scene"
+      }
+     ]
+    }
+   }
+  },
+  "33130": {
+   "snippet_count": 4,
+   "is_demo": true,
+   "tags": {
+    "metrorail": {
+     "level": "specific",
+     "parent": "transit",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T3",
+       "quote": "Metrorail nearby",
+       "via": null
+      }
+     ]
+    },
+    "transit": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T3",
+       "quote": "Metrorail nearby",
+       "via": "metrorail"
+      },
+      {
+       "snippet_id": "T3",
+       "quote": "commuting easy without a car",
+       "via": null
+      }
+     ]
+    },
+    "street_noise": {
+     "level": "specific",
+     "parent": "noisy",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T4",
+       "quote": "street noise is real",
+       "via": null
+      }
+     ]
+    },
+    "noisy": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T4",
+       "quote": "street noise is real",
+       "via": "street_noise"
+      }
+     ]
+    },
+    "high_rise": {
+     "level": "parent",
+     "parent": null,
+     "count": 2,
+     "evidence": [
+      {
+       "snippet_id": "T4",
+       "quote": "in some towers",
+       "via": null
+      },
+      {
+       "snippet_id": "T15",
+       "quote": "towers",
+       "via": null
+      }
+     ]
+    },
+    "roommate_friendly": {
+     "level": "specific",
+     "parent": "co_living",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T15",
+       "quote": "roommate-friendly",
+       "via": null
+      }
+     ]
+    },
+    "co_living": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T15",
+       "quote": "roommate-friendly",
+       "via": "roommate_friendly"
+      }
+     ]
+    },
+    "newcomer_friendly": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T15",
+       "quote": "new to the city",
+       "via": null
+      }
+     ]
+    },
+    "nightlife": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T17",
+       "quote": "Brickell nightlife",
+       "via": null
+      }
+     ]
+    },
+    "networking": {
+     "level": "specific",
+     "parent": "social",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T17",
+       "quote": "networking",
+       "via": null
+      }
+     ]
+    },
+    "social": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T17",
+       "quote": "networking",
+       "via": "networking"
+      },
+      {
+       "snippet_id": "T17",
+       "quote": "very social",
+       "via": null
+      }
+     ]
+    }
+   }
+  },
+  "33133": {
+   "snippet_count": 2,
+   "is_demo": true,
+   "tags": {
+    "tree_lined_streets": {
+     "level": "specific",
+     "parent": "parks_green",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T7",
+       "quote": "Tree-lined streets",
+       "via": null
+      }
+     ]
+    },
+    "parks_green": {
+     "level": "parent",
+     "parent": null,
+     "count": 2,
+     "evidence": [
+      {
+       "snippet_id": "T7",
+       "quote": "Tree-lined streets",
+       "via": "tree_lined_streets"
+      },
+      {
+       "snippet_id": "T7",
+       "quote": "parks",
+       "via": "parks"
+      },
+      {
+       "snippet_id": "T8",
+       "quote": "parks",
+       "via": "parks"
+      }
+     ]
+    },
+    "parks": {
+     "level": "specific",
+     "parent": "parks_green",
+     "count": 2,
+     "evidence": [
+      {
+       "snippet_id": "T7",
+       "quote": "parks",
+       "via": null
+      },
+      {
+       "snippet_id": "T8",
+       "quote": "parks",
+       "via": null
+      }
+     ]
+    },
+    "quiet": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T7",
+       "quote": "quieter",
+       "via": null
+      }
+     ]
+    },
+    "pet_friendly": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T8",
+       "quote": "dog owners",
+       "via": null
+      }
+     ]
+    }
+   }
+  },
+  "33134": {
+   "snippet_count": 1,
+   "is_demo": true,
+   "tags": {
+    "residential": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T19",
+       "quote": "Coral Gables feels residential",
+       "via": null
+      },
+      {
+       "snippet_id": "T19",
+       "quote": "lots of houses",
+       "via": "single_family_homes"
+      }
+     ]
+    },
+    "single_family_homes": {
+     "level": "specific",
+     "parent": "residential",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T19",
+       "quote": "lots of houses",
+       "via": null
+      }
+     ]
+    },
+    "tree_lined_streets": {
+     "level": "specific",
+     "parent": "parks_green",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T19",
+       "quote": "tree-lined blocks",
+       "via": null
+      }
+     ]
+    },
+    "parks_green": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T19",
+       "quote": "tree-lined blocks",
+       "via": "tree_lined_streets"
+      }
+     ]
+    }
+   }
+  },
+  "33135": {
+   "snippet_count": 1,
+   "is_demo": true,
+   "tags": {
+    "community": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T11",
+       "quote": "Strong community feel",
+       "via": null
+      }
+     ]
+    },
+    "food_scene": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T11",
+       "quote": "food culture",
+       "via": null
+      }
+     ]
+    }
+   }
+  },
+  "33137": {
+   "snippet_count": 1,
+   "is_demo": true,
+   "tags": {
+    "arts_creative": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T9",
+       "quote": "Creative scene",
+       "via": null
+      }
+     ]
+    },
+    "social": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T9",
+       "quote": "good for meeting people",
+       "via": null
+      }
+     ]
+    },
+    "newcomer_friendly": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T9",
+       "quote": "after moving",
+       "via": null
+      }
+     ]
+    }
+   }
+  },
+  "33139": {
+   "snippet_count": 2,
+   "is_demo": true,
+   "tags": {
+    "social": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T5",
+       "quote": "Very social neighborhood",
+       "via": null
+      }
+     ]
+    },
+    "beach_culture": {
+     "level": "specific",
+     "parent": "beach",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T5",
+       "quote": "beach culture",
+       "via": null
+      }
+     ]
+    },
+    "beach": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T5",
+       "quote": "beach culture",
+       "via": "beach_culture"
+      }
+     ]
+    },
+    "nightlife": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T5",
+       "quote": "nightlife",
+       "via": null
+      }
+     ]
+    }
+   }
+  },
+  "33142": {
+   "snippet_count": 1,
+   "is_demo": true,
+   "tags": {}
+  },
+  "33156": {
+   "snippet_count": 1,
+   "is_demo": true,
+   "tags": {
+    "single_family_homes": {
+     "level": "specific",
+     "parent": "residential",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T20",
+       "quote": "single-family",
+       "via": null
+      }
+     ]
+    },
+    "residential": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T20",
+       "quote": "single-family",
+       "via": "single_family_homes"
+      },
+      {
+       "snippet_id": "T20",
+       "quote": "yards",
+       "via": "yards"
+      }
+     ]
+    },
+    "yards": {
+     "level": "specific",
+     "parent": "residential",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T20",
+       "quote": "yards",
+       "via": null
+      }
+     ]
+    },
+    "quiet": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T20",
+       "quote": "suburban calm",
+       "via": null
+      }
+     ]
+    }
+   }
+  },
+  "33186": {
+   "snippet_count": 1,
+   "is_demo": true,
+   "tags": {
+    "single_family_homes": {
+     "level": "specific",
+     "parent": "residential",
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T18",
+       "quote": "single-family streets",
+       "via": null
+      }
+     ]
+    },
+    "residential": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T18",
+       "quote": "single-family streets",
+       "via": "single_family_homes"
+      }
+     ]
+    },
+    "quiet": {
+     "level": "parent",
+     "parent": null,
+     "count": 1,
+     "evidence": [
+      {
+       "snippet_id": "T18",
+       "quote": "quieter",
+       "via": null
+      }
+     ]
+    }
+   }
+  }
+ }
+}

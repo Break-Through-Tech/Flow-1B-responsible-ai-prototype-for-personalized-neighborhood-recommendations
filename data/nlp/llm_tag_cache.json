@@ -1,0 +1,411 @@
+{
+ "159f9f9596838448": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Lots of events",
+    "evidence_found": true,
+    "tag": "events"
+   },
+   {
+    "evidence": "people meeting up",
+    "evidence_found": true,
+    "tag": "social"
+   },
+   {
+    "evidence": "loud on weekends",
+    "evidence_found": true,
+    "tag": "weekend_noise"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "18de29b6113f26ea": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Strong community feel",
+    "evidence_found": true,
+    "tag": "community"
+   },
+   {
+    "evidence": "food culture",
+    "evidence_found": true,
+    "tag": "food_scene"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "263028845918d9df": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "co-living rooms",
+    "evidence_found": true,
+    "tag": "co_living"
+   },
+   {
+    "evidence": "help me meet roommates",
+    "evidence_found": false,
+    "tag": "roommate_friendly"
+   },
+   {
+    "evidence": "when I first arrived",
+    "evidence_found": true,
+    "tag": "newcomer_friendly"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "5df6f806ff5ed585": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "street noise is real",
+    "evidence_found": true,
+    "tag": "street_noise"
+   },
+   {
+    "evidence": "in some towers",
+    "evidence_found": true,
+    "tag": "high_rise"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "6cb461db47b7b18b": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Creative scene",
+    "evidence_found": true,
+    "tag": "arts_creative"
+   },
+   {
+    "evidence": "good for meeting people",
+    "evidence_found": true,
+    "tag": "social"
+   },
+   {
+    "evidence": "after moving",
+    "evidence_found": true,
+    "tag": "newcomer_friendly"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "6cf48014cd30fe68": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "single-family",
+    "evidence_found": true,
+    "tag": "single_family_homes"
+   },
+   {
+    "evidence": "yards",
+    "evidence_found": true,
+    "tag": "yards"
+   },
+   {
+    "evidence": "suburban calm",
+    "evidence_found": true,
+    "tag": "quiet"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "7e6707bbf5b67c7c": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Shared lofts",
+    "evidence_found": true,
+    "tag": "shared_lofts"
+   },
+   {
+    "evidence": "co-living",
+    "evidence_found": true,
+    "tag": "co_living"
+   },
+   {
+    "evidence": "creatives",
+    "evidence_found": true,
+    "tag": "arts_creative"
+   },
+   {
+    "evidence": "new to Miami",
+    "evidence_found": true,
+    "tag": "newcomer_friendly"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "942077e15543ed56": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Downtown events",
+    "evidence_found": true,
+    "tag": "events"
+   },
+   {
+    "evidence": "after-work scene",
+    "evidence_found": true,
+    "tag": "after_work_scene"
+   },
+   {
+    "evidence": "easy to build a social circle",
+    "evidence_found": true,
+    "tag": "social"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "9c2fb11376118c5c": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Coral Gables feels residential",
+    "evidence_found": true,
+    "tag": "residential"
+   },
+   {
+    "evidence": "lots of houses",
+    "evidence_found": true,
+    "tag": "single_family_homes"
+   },
+   {
+    "evidence": "tree-lined blocks",
+    "evidence_found": true,
+    "tag": "tree_lined_streets"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "a3b0b7513d8b5da1": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "roommate-friendly",
+    "evidence_found": true,
+    "tag": "roommate_friendly"
+   },
+   {
+    "evidence": "towers",
+    "evidence_found": true,
+    "tag": "high_rise"
+   },
+   {
+    "evidence": "new to the city",
+    "evidence_found": true,
+    "tag": "newcomer_friendly"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "a60016f896d84dbe": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Brickell nightlife",
+    "evidence_found": true,
+    "tag": "nightlife"
+   },
+   {
+    "evidence": "networking",
+    "evidence_found": true,
+    "tag": "networking"
+   },
+   {
+    "evidence": "very social",
+    "evidence_found": true,
+    "tag": "social"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "b81f0477ff9c77ad": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Great walkability",
+    "evidence_found": true,
+    "tag": "walkable"
+   },
+   {
+    "evidence": "easy bus access",
+    "evidence_found": true,
+    "tag": "bus_access"
+   },
+   {
+    "evidence": "welcoming as a newcomer",
+    "evidence_found": true,
+    "tag": "newcomer_friendly"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "b9039fd3df9aee7e": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Tree-lined streets",
+    "evidence_found": true,
+    "tag": "tree_lined_streets"
+   },
+   {
+    "evidence": "parks",
+    "evidence_found": true,
+    "tag": "parks"
+   },
+   {
+    "evidence": "quieter",
+    "evidence_found": true,
+    "tag": "quiet"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "c28a0683bce99c7c": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "dog owners",
+    "evidence_found": true,
+    "tag": "pet_friendly"
+   },
+   {
+    "evidence": "parks",
+    "evidence_found": true,
+    "tag": "parks"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "ce778bad8927a30f": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Very social neighborhood",
+    "evidence_found": true,
+    "tag": "social"
+   },
+   {
+    "evidence": "beach culture",
+    "evidence_found": true,
+    "tag": "beach_culture"
+   },
+   {
+    "evidence": "nightlife",
+    "evidence_found": true,
+    "tag": "nightlife"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "d423ef099a896d41": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "single-family streets",
+    "evidence_found": true,
+    "tag": "single_family_homes"
+   },
+   {
+    "evidence": "quieter",
+    "evidence_found": true,
+    "tag": "quiet"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "d523e66e73a56898": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Metrorail nearby",
+    "evidence_found": true,
+    "tag": "metrorail"
+   },
+   {
+    "evidence": "commuting easy without a car",
+    "evidence_found": true,
+    "tag": "transit"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "ee652f578d0be4b3": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [
+   {
+    "description": "High energy and vibrant atmosphere",
+    "parent": null,
+    "tag": "energetic"
+   }
+  ],
+  "tags": [],
+  "vocabulary_version": 2
+ },
+ "f33f157c897917cf": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [
+   {
+    "evidence": "Central location",
+    "evidence_found": true,
+    "tag": "central"
+   },
+   {
+    "evidence": "easy to get around with public transit",
+    "evidence_found": true,
+    "tag": "transit"
+   }
+  ],
+  "vocabulary_version": 2
+ },
+ "fe63460c008b9d86": {
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "3",
+  "proposed": [],
+  "tags": [],
+  "vocabulary_version": 2
+ }
+}
