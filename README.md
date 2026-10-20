@@ -72,6 +72,14 @@ Full details: [Challenge-Project-Overview.md](Challenge-Project-Overview.md)
 
 ## Get started locally
 
+### Recommendation baseline (implemented October 11)
+
+The offline Python engine now filters prepared data by budget, ranks ZIPs by how well
+they match the requested priorities, and attaches labeled demo-text evidence. See
+[run instructions, contracts, tests, and measured results](docs/recommender_baseline.md).
+The first baseline passes budget checks but has low relevance on the supplied fixtures;
+it is ready for error analysis and integration work.
+
 ```bash
 git clone https://github.com/Break-Through-Tech/Flow-Responsible_AI_Neighborhood_Recommendation.git
 cd Flow-Responsible_AI_Neighborhood_Recommendation

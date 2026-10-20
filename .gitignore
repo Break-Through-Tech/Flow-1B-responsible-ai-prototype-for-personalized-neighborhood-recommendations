@@ -1,1 +1,75 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
 
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+service-account*.json
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# Test and coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+junit.xml
+.tox/
+.nox/
+
+# Packaging and build output
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter and Colab notebook checkpoints
+.ipynb_checkpoints/
+
+# Streamlit local credentials
+.streamlit/secrets.toml
+.streamlit/credentials.toml
+
+# Logs, temporary files, and local runtime output
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# Local evaluation and generated artifacts
+artifacts/
+outputs/
+
+# Large or license-restricted source downloads.
+# Keep reproducible, approved snapshots elsewhere under data/ when needed.
+data/raw/
+data/external/
+
+# IDE settings
+.vscode/
+.idea/
+*.code-workspace
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
