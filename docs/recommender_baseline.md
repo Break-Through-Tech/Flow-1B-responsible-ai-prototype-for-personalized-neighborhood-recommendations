@@ -1,5 +1,7 @@
 # Recommendation baseline: October 11, 2026
 
+> **October 28 update:** requests now accept `weights` (priority 1-3 per tag) and `near` (up to 3 neighborhood names or ZIPs); a co-leaser's `budget_max` is their own share (combined = x2, with a warning); results add `usps_city`; and `feature_set="census"` (`--features census`) proposes measured transit, social, walkable and quiet. Starter features remain the default. See [karla_review.md](karla_review.md) for the pipeline, results and open questions. Sections below describe the October 11 baseline.
+
 ## Implemented scope
 
 The `flow_neighborhoods` package implements the preference/budget behavior in #8, initial demo-theme lookup in #9, and a deterministic ranker for #11 (requested-feature mean by default; the original cosine baseline is kept for comparison). The evaluation runner supports Amelie's #12 scorecard. This is local implementation evidence; GitHub issue statuses have not been changed.
@@ -14,7 +16,6 @@ The engine uses Python 3.11+ and the standard library. Keep the team's existing 
 .venv/Scripts/python.exe -m pip install -e . --group dev
 .venv/Scripts/python.exe -m flow_neighborhoods --budget 2500 --household with_co_leaser --tags transit walkable --k 3
 .venv/Scripts/python.exe -m flow_neighborhoods.evaluate --scorer mean
-.venv/Scripts/python.exe -m flow_neighborhoods.evaluate --scorer mean --features density
 .venv/Scripts/python.exe -m flow_neighborhoods.evaluate --scorer cosine
 .venv/Scripts/python.exe -m pytest -q
 .venv/Scripts/python.exe -m ruff check src tests
@@ -105,27 +106,30 @@ Checked against `miami_dade_public_features.csv` on October 14. Among ZIPs that 
 
 ZIP population measures how big a ZIP is, not how urban it is. The largest ZIP (33012, Hialeah) is therefore the "most social" and "least quiet", and the hand-set 0.80 puts Brickell and Downtown *below* large suburbs. The response warns when a requested feature is constant across the snapshot, and when all eligible areas tie.
 
-## Density feature set (prototype)
+## Density prototype: rejected and removed
 
-`Recommender(..., feature_set="density")` or `--features density` replaces three features with residential population density (ACS population from `public_features_cleaned.csv` divided by Census land area from `data/zcta_land_area.csv`):
+Removed from the runtime on October 21, 2026 with Om's approval. The original
+implementation remains in commit `6b5b030`; no commits were deleted or rewritten.
+The feature diagnosis above is preserved. Land area now lives in
+`data/zcta_geography.csv` (October 28), which replaced `data/zcta_land_area.csv`.
 
-- `social` and `walkable`: density percentile among snapshot ZIPs (0-1)
-- `quiet`: 1 - density percentile
-- `transit`, `pet_friendly`, `co_living_friendly`: unchanged
+The prototype assigned social and walkable the same density percentile, then
+assigned quiet one minus that percentile. This collapsed distinct preferences
+onto one measure: a social + quiet request gave every eligible ZIP a score of
+0.5. Residential density does not directly measure social activities, pedestrian
+access, or noise. The higher five-profile scores below do not justify adopting it.
 
-The definitions were fixed before evaluating them. Areas without density are excluded only when a density feature is requested. The response reports `feature_set`, warns that these are density proxies (not nightlife, sidewalks or noise), and hashes both extra files. The default remains `provided` until the data owners agree to move this into the cleaning pipeline.
-
-Known limits:
-
-- Density counts residents. Wynwood (8,600 people/sq mi) is mostly businesses and nightlife, so it ranks lower for social than it should.
-- `quiet` as low density ranks rural ZIPs (Homestead, Redland) first. The P4 labels expect settled residential areas (Coral Gables, Coconut Grove, Pinecrest). This is an open definition question, not something to tune.
-- Making `transit` density too was tested and rejected: every profile then returned the same ZIPs. A real transit feature needs Miami-Dade Transit stop data (GTFS).
+`feature_set` and `--features` are no longer supported. The runtime uses provided
+features with mean or cosine scoring. No replacement feature set is approved.
+See `feature_spec_proposal.md` for decisions required before implementation.
 
 ## Measured baseline
 
-Run dates: October 11 (provided features) and October 14 (density), 2026. Five supplied profiles, uniform feature weights, no fitting or tuning. Reports are written to `outputs/recommender_<scorer>_<features>.json` and include per-profile outputs, source/code/profile hashes, Git HEAD and working-tree status. Git HEAD alone does not identify uncommitted implementation; use the included code hashes too.
+Run dates: October 11 (provided features) and October 14 (density), 2026. Five supplied profiles, uniform feature weights, no fitting or tuning. Current reports are written to `outputs/recommender_<scorer>.json` and include per-profile outputs, source/code/profile hashes, Git HEAD and working-tree status. Git HEAD alone does not identify uncommitted implementation; use the included code hashes too.
 
-| Metric | cosine, provided | mean, provided | cosine, density | mean, density |
+Density columns and the density profile table below are historical results of the rejected prototype, not supported runtime modes.
+
+| Metric | cosine, provided | mean, provided | cosine, density (rejected) | mean, density (rejected) |
 |---|---:|---:|---:|---:|
 | Mean Precision@3 | 0.133 | 0.133 | 0.133 | 0.467 |
 | Mean Precision@5 | 0.080 | 0.160 | 0.160 | 0.320 |
@@ -134,7 +138,7 @@ Run dates: October 11 (provided features) and October 14 (density), 2026. Five s
 | Demo theme coverage @5 (macro average) | 12% | 20% | 20% | 44% |
 | Empty profiles | 0/5 | 0/5 | 0/5 | 0/5 |
 
-The gain needs both changes: density features under cosine barely help, because cosine still penalizes unrequested strengths.
+Historically, density features under cosine barely helped. The improvement under mean scoring does not establish that density represents the requested preferences.
 
 | Profile | mean + density top 3 | Expected ZIP ranks | P@3 |
 |---|---|---|---:|
@@ -164,6 +168,6 @@ With provided features, only the co-living profile retrieves labeled relevant ZI
 
 ## Validation and next steps
 
-43 tests cover budget boundaries, density features, missing/suppressed rents, hand-calculated mean and cosine values, unrequested-feature behavior, constant-feature warnings, zero vectors, stable ties, duplicate tags, invalid requests, housing-mode behavior, missing features, bad source schemas, evidence preservation, evaluation denominators, and all five profiles with the actual snapshot.
+40 tests cover budget boundaries, missing/suppressed rents, hand-calculated mean and cosine values, unrequested-feature behavior, constant-feature warnings, zero vectors, stable ties, duplicate tags, invalid requests, housing-mode behavior, missing features, bad source schemas, evidence preservation, evaluation denominators, and all five profiles with the actual snapshot.
 
-Next: ask Amelie and Joana to move density into the cleaning pipeline and drop the hand-set overrides; agree with the team what `quiet` should mean (P4); propose a GTFS transit feature; get independently labeled development and held-out profiles before changing ranking further. With Nadia, add evidence-preserving text preprocessing and polarity-aware extraction after agreeing a labeled evaluation set. With the MCP owners, finalize tool error mapping and implement the tool server. Keep the current baseline fixed for comparison.
+Next: agree independent, meaningful feature definitions with the advisor and data owners; agree with the team what `quiet` should mean (P4); propose a GTFS transit feature; get independently labeled development and held-out profiles before changing ranking further. With Nadia, add evidence-preserving text preprocessing and polarity-aware extraction after agreeing a labeled evaluation set. With the MCP owners, finalize tool error mapping and implement the tool server. Keep the current baseline fixed for comparison.

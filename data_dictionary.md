@@ -28,14 +28,38 @@
 
 Plain-text list of Miami-Dade ZIP codes used to scope the project.
 
-## zcta_land_area.csv
+## zcta_geography.csv
 
-Land area per Miami-Dade ZCTA, extracted from the [2023 Census Gazetteer ZCTA file](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html) (public domain). 80 rows; the 5 PO-box ZIPs in `miami_dade_zctas.txt` have no ZCTA land area. Used by the recommender's `density` feature set.
+One row per Miami-Dade ZCTA (80 rows; the 5 PO-box ZIPs in `miami_dade_zctas.txt` have no ZCTA). Built by `experiments/feature_candidates/build_data.py`. Used for land area (census feature set), distance for `near` requests, and the USPS city shown next to `area_name` (which is never overwritten).
 
-| Column | Type | Description |
-|--------|------|-------------|
-| zip | string | 5-digit ZCTA |
-| land_sqmi | float | Land area in square miles (`ALAND_SQMI`) |
+| Column | Type | Description | Source |
+|--------|------|-------------|--------|
+| zip | string | 5-digit ZCTA | |
+| land_sqmi | float | Land area, square miles | 2023 Census Gazetteer `ALAND_SQMI` (public domain) |
+| lat, lon | float | ZCTA internal point | Gazetteer `INTPTLAT`, `INTPTLONG` |
+| usps_city | string | USPS city name for the ZIP | ZIP Code Business Patterns 2021 |
+
+## census_features.csv
+
+Raw counts per ZCTA for the proposed `census` feature set; the engine converts them to percentiles. Built by `experiments/feature_candidates/build_data.py`. Business counts are by mailing ZIP, which does not exactly match ZCTA boundaries.
+
+| Column | Description | Source |
+|--------|-------------|--------|
+| population | Total population | `public_features_cleaned.csv` (ACS 2018-22) |
+| workers, transit_commuters, walk_commuters | Workers 16+ by means of transportation to work | ACS 2018-22 B08301 (E001, E010, E019) |
+| households, households_no_vehicle | Households and those with no vehicle | ACS 2018-22 B08201 (E001, E002) |
+| food_drink_establishments | Restaurants and bars (NAICS 722) | ZIP Code Business Patterns 2021 |
+| bar_establishments | Drinking places, incl. bars and nightclubs (NAICS 7224) | ZIP Code Business Patterns 2021 |
+
+## neighborhood_aliases.csv
+
+Name-to-ZIP dictionary for `near` requests. One row per (alias, zip); a name can map to several ZIPs (e.g. Doral). Names covering more than 10 ZIPs (e.g. "Miami") are rejected as too broad.
+
+| Column | Description |
+|--------|-------------|
+| alias | Neighborhood or city name as a user might type it |
+| zip | 5-digit ZCTA |
+| source | `area_features.csv area_name` (advisor's starter labels) or `USPS city, ZIP Code Business Patterns 2021` |
 
 ## area_features.csv
 

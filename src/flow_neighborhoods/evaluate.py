@@ -18,9 +18,8 @@ def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
     rows = []
     for profile in profiles:
         relevant = set(profile["expected_relevant_zips"])
-        payload = {
-            key: profile[key] for key in ("budget_max", "household", "housing_preference", "tags")
-        }
+        keys = ("budget_max", "household", "housing_preference", "tags", "weights", "near")
+        payload = {key: profile[key] for key in keys if key in profile}
         # Rank over every eligible area, not just the top k, so improvements
         # below the cut-off are still visible.
         ranking = [item["zip"] for item in engine.rank(Request.parse(payload))[0]]
@@ -42,7 +41,10 @@ def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
                     "relevant_ranks": dict(sorted(relevant_ranks.items())),
                     "mean_score": mean(item["score"] for item in results) if results else None,
                     "budget_pass": all(
-                        0 < item["median_rent_usd"] <= profile["budget_max"] for item in results
+                        0
+                        < item["median_rent_usd"]
+                        <= response["applied_filters"]["combined_budget_usd"]
+                        for item in results
                     )
                     if results
                     else None,
