@@ -61,23 +61,24 @@ Cosine gets worse with better data. It rewards an area whose overall profile has
 
 | Topic | Decision |
 |---|---|
-| Quiet | Low density plus few bars and nightclubs. Family-related data was **not** used: familial status is protected under fair housing, and the project rules forbid steering by family status. |
+| Quiet | **Final:** low population density plus few bars and nightclubs. Noise data was not used: the BTS noise map is heavy to process and is meant for national-level analysis. Family-related data was not used either: familial status is fair-housing protected. |
 | Household budget | `budget_max` is the couple's **total**, matching routing fixture R1 ("We're moving… with a co-leaser… Budget $2500"). The response warns that median rent covers all unit sizes. |
 | Priorities | Each tag gets 1 (nice to have), 2 (important) or 3 (top priority). |
 | Named neighborhoods | Supported through a separate dictionary (`data/neighborhood_aliases.csv`): your starter labels plus USPS city names. A name covering more than 10 ZIPs (e.g. "Miami") is rejected as too broad, and typos get a suggestion. |
 | Area names | `area_name` is unchanged. A new `usps_city` field comes from `data/zcta_geography.csv`. |
 | Default features | Starter features stay the default; census is opt-in until approved. |
+| Starter data | The reference repo is not treated as the only source of truth. Columns that shipped with the challenge data (e.g. `co_living_friendly`) are kept as provided. |
 
 ## Questions for you
 
 1. Were the `build_features.py` lifestyle scores meant to be replaced? Is the census feature set the right direction?
 2. Are these sources approved: ACS commute and vehicle tables, ZIP Business Patterns, the Census Gazetteer? Any licensing limits?
 3. **Steering:** transit and walkable use residents' commute behavior and car ownership. Is that acceptable, or should we move to place-based data (GTFS transit service, a walkability index)?
-4. **Quiet and noise data:** no noise data was provided. The BTS National Transportation Noise Map (2020 road and aviation noise, LAeq 24-hour) exists, but only as a multi-GB lower-48 raster: the hosted image service needs a token, and point queries fail. Using it means downloading the full raster plus ZIP boundaries and averaging per ZIP. BTS also says it "should not be used to evaluate noise levels in individual locations." Is a ZIP-level average acceptable, and is it worth the effort? Or should we keep low density plus low nightlife? P4's labels expect affluent residential areas, which neither approach targets.
+4. **Quiet (P4):** P4's labels expect affluent residential areas (Coconut Grove, Coral Gables, Pinecrest), which low density plus low nightlife does not target. Should P4's expected ZIPs be revisited?
 5. Who wrote the expected ZIPs in the five profiles? Can we get more profiles, or write a held-out set?
 6. Is there a Precision@3 target for the final scorecard?
 7. Is the mean scorer acceptable instead of cosine? Issue #11 and ARCHITECTURE.md say cosine; cosine is kept for comparison.
-8. Where did `co_living_friendly` and `single_family_friendly` come from? Both have been in `area_features.csv` since the repo's initial commit (Aug 20), so they shipped with the challenge data, but the public `build_features.py` in miami-newcomer-explorer doesn't produce them. co_living_friendly ranks the three anchor ZIPs highest (Wynwood 0.92, Brickell 0.90, Downtown 0.88), and 18 ZIPs share exactly 0.55 or 0.15. If it was hand-set, the co-living profile P3 may pass by construction. single_family_friendly is 0.65 for 33 ZIPs and could act as a proxy for familial status. Is it safe to use, or should we drop it?
+8. `co_living_friendly` and `single_family_friendly` shipped with the challenge data (initial commit) but aren't produced by the public `build_features.py`. We keep using `co_living_friendly` as provided. Is there anything we should know about how it was made? co_living_friendly ranks the three anchor ZIPs highest. `single_family_friendly` stays unused for ranking because it could proxy familial status.
 9. **pet_friendly:** is there a data source you intended, or should we drop the tag?
 10. **Co-leaser rent:** we treat the budget as the couple's total. Should co-leasers be compared against 2-bedroom rents rather than all-unit median rent?
 11. Should the MCP tools follow your `mcp_server.py` / `tools.py` contracts? Is a Streamlit demo expected?
