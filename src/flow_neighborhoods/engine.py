@@ -135,7 +135,7 @@ class Recommender:
             if rent is None:
                 excluded["missing_rent"] += 1
                 continue
-            if rent > request.combined_budget:
+            if rent > request.budget_max:
                 excluded["over_budget"] += 1
                 continue
             vector = [
@@ -188,9 +188,7 @@ class Recommender:
             "excluded_counts": {"missing_rent": 0, "over_budget": 0, "missing_features": 0},
             "applied_filters": {
                 "budget_max": request.budget_max,
-                "budget_basis": "per_person_share" if co_leaser else "total_monthly_usd",
-                "household_size": request.household_size,
-                "combined_budget_usd": request.combined_budget,
+                "budget_basis": "household_total_monthly_usd",
                 "rent_field": "median_rent_usd",
                 "household": request.household,
                 "housing_preference": request.housing_preference,
@@ -209,9 +207,9 @@ class Recommender:
         }
         if co_leaser:
             response["warnings"].append(
-                f"Budget is treated as each person's share: ${request.budget_max:,.0f} x 2 = "
-                f"${request.combined_budget:,.0f} combined, assuming rent is split evenly with "
-                "one co-leaser. Median rent covers all unit sizes; a 2-bedroom usually costs more."
+                f"Budget is treated as the household's total: ${request.budget_max:,.0f} a month "
+                "for you and your co-leaser combined, not each person's share. Median rent covers "
+                "all unit sizes; a 2-bedroom usually costs more."
             )
         clarification = request.clarification()
         if clarification:

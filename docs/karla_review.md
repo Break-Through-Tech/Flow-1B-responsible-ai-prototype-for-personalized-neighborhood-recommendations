@@ -4,7 +4,7 @@ October 28, 2026 · Om Patel · Branch `Om` (local; not yet on GitHub)
 
 ## Summary
 
-The engine on `main` filters ZIPs by budget and ranks them reliably, but its lifestyle scores were placeholders. `build_features.py` derives them from ZIP population and rent, which is why Precision@3 was 0.13. Today's changes add a proposed **census** feature set built from public Census measurements, plus three request features: **priorities**, **per-person budget for co-leasers**, and **"near" a named neighborhood**. On the five test profiles, the census features raise Precision@3 from 0.13 to 0.53 and MRR from 0.32 to 0.70. The starter features remain the default until you and the data owners approve the new ones.
+The engine on `main` filters ZIPs by budget and ranks them reliably, but its lifestyle scores were placeholders. `build_features.py` derives them from ZIP population and rent, which is why Precision@3 was 0.13. Today's changes add a proposed **census** feature set built from public Census measurements, plus three request features: **priorities**, an explicit **household budget** rule, and **"near" a named neighborhood**. On the five test profiles, the census features raise Precision@3 from 0.13 to 0.53 and MRR from 0.32 to 0.70. The starter features remain the default until you and the data owners approve the new ones.
 
 ## How the pipeline works
 
@@ -22,7 +22,7 @@ request ──► 1 validate ──► 2 clarify? ──► 3 budget filter ─�
 
 1. **Validate.** Reject bad types, unknown tags, k outside 1–5, priorities other than 1/2/3, and more than 3 `near` names. Invalid input is an error, which is distinct from "no matches".
 2. **Clarify.** No tags, own apartment combined with a co-living tag, or co-living with a co-leaser → `needs_clarification` instead of guessing.
-3. **Budget filter.** With a co-leaser, `budget_max` is each person's share, so the combined budget is $1,500 × 2 = $3,000. ZIPs are excluded for unknown rent (never estimated), rent over the combined budget, or a missing value for a requested feature. Every exclusion is counted.
+3. **Budget filter.** `budget_max` is the household's total monthly rent; with a co-leaser it covers both people, and the response says so. ZIPs are excluded for unknown rent (never estimated), rent over budget, or a missing value for a requested feature. Every exclusion is counted.
 4. **Score.** A weighted mean of the requested features, each a 0–1 percentile among Miami-Dade ZIPs. With transit at priority 3 and quiet at 1, transit counts three times as much. `near` adds a closeness score: 1 at the named neighborhood, falling with distance between ZIP centers.
 5. **Rank.** Sort by score, with ties broken by ZIP, so the same input always gives the same output.
 6. **Explain.** Each result carries its rent, score, per-feature contributions with their priority, raw measurements (e.g. bars per sq mi), distance to the named neighborhood, USPS city, and demo text evidence. The response also lists warnings, exclusion counts and data-file hashes.
@@ -42,16 +42,17 @@ The LLM agent only narrates this output; it never ranks.
 
 ## Results on the five profiles
 
-| Features | Budget rule | P@3 | P@5 | MRR |
+| Features | Scorer | P@3 | P@5 | MRR |
 |---|---|---:|---:|---:|
-| Starter | household total (old) | 0.13 | 0.16 | 0.32 |
-| Starter | per-person share (new) | 0.13 | 0.16 | 0.32 |
-| **Census** | household total | 0.53 | 0.32 | 0.70 |
-| **Census** | per-person share | **0.53** | **0.32** | **0.70** |
+| Starter | cosine (original) | 0.13 | 0.08 | 0.15 |
+| Starter | mean | 0.13 | 0.16 | 0.32 |
+| Census | cosine | 0.07 | 0.16 | 0.24 |
+| **Census** | **mean** | **0.53** | **0.32** | **0.70** |
+
+Cosine gets worse with better data. It rewards an area whose overall profile has the same *shape* as the request, so for a transit-only request its ideal area is strong on transit and weak on everything else. For that request, census + cosine returns Little Haiti, Allapattah and Liberty City, while census + mean returns Downtown, Health District and Brickell.
 
 - P1, P2, P3 and P5 each reach 2 of 3 expected ZIPs in the top 3.
-- **P4 (quiet + pets) gets worse.** Its expected ZIPs (Coconut Grove, Coral Gables, Pinecrest) rank in the 50s–60s. Low density plus few bars ranks quieter outer areas first, and pet_friendly carries no information.
-- The per-person budget didn't change precision, but co-leaser profiles now see more and pricier ZIPs.
+- **P4 (quiet + pets) gets worse.** Its expected ZIPs (Coconut Grove, Coral Gables, Pinecrest) rank 53rd–57th. Low density plus few bars ranks quieter outer areas first, and pet_friendly carries no information.
 - **With `near: ["Brickell"]`,** P5 returns Brickell (0 mi), Downtown (0.6 mi) and Health District (1.3 mi).
 - **Priorities work as expected.** For transit + quiet at $1,800, putting transit at priority 3 surfaces Health District and Downtown; putting quiet at priority 3 surfaces outer ZIPs.
 - **Caveat:** five team-written profiles cannot show generalization. Each tag is tested by only 1–3 profiles.
@@ -61,7 +62,7 @@ The LLM agent only narrates this output; it never ranks.
 | Topic | Decision |
 |---|---|
 | Quiet | Low density plus few bars and nightclubs. Family-related data was **not** used: familial status is protected under fair housing, and the project rules forbid steering by family status. |
-| Household budget | A co-leaser enters their own share; the engine assumes an even split with one co-leaser and warns that median rent covers all unit sizes. |
+| Household budget | `budget_max` is the couple's **total**, matching routing fixture R1 ("We're moving… with a co-leaser… Budget $2500"). The response warns that median rent covers all unit sizes. |
 | Priorities | Each tag gets 1 (nice to have), 2 (important) or 3 (top priority). |
 | Named neighborhoods | Supported through a separate dictionary (`data/neighborhood_aliases.csv`): your starter labels plus USPS city names. A name covering more than 10 ZIPs (e.g. "Miami") is rejected as too broad, and typos get a suggestion. |
 | Area names | `area_name` is unchanged. A new `usps_city` field comes from `data/zcta_geography.csv`. |
@@ -72,13 +73,13 @@ The LLM agent only narrates this output; it never ranks.
 1. Were the `build_features.py` lifestyle scores meant to be replaced? Is the census feature set the right direction?
 2. Are these sources approved: ACS commute and vehicle tables, ZIP Business Patterns, the Census Gazetteer? Any licensing limits?
 3. **Steering:** transit and walkable use residents' commute behavior and car ownership. Is that acceptable, or should we move to place-based data (GTFS transit service, a walkability index)?
-4. **Quiet:** P4's labels expect affluent residential areas. Is low density plus low nightlife right, or should it be noise data?
+4. **Quiet and noise data:** no noise data was provided. The BTS National Transportation Noise Map (2020 road and aviation noise, LAeq 24-hour) exists, but only as a multi-GB lower-48 raster: the hosted image service needs a token, and point queries fail. Using it means downloading the full raster plus ZIP boundaries and averaging per ZIP. BTS also says it "should not be used to evaluate noise levels in individual locations." Is a ZIP-level average acceptable, and is it worth the effort? Or should we keep low density plus low nightlife? P4's labels expect affluent residential areas, which neither approach targets.
 5. Who wrote the expected ZIPs in the five profiles? Can we get more profiles, or write a held-out set?
 6. Is there a Precision@3 target for the final scorecard?
 7. Is the mean scorer acceptable instead of cosine? Issue #11 and ARCHITECTURE.md say cosine; cosine is kept for comparison.
-8. Where did `co_living_friendly` and `single_family_friendly` come from?
+8. Where did `co_living_friendly` and `single_family_friendly` come from? Neither is produced by `build_features.py`. co_living_friendly ranks the three anchor ZIPs highest (Wynwood 0.92, Brickell 0.90, Downtown 0.88), and 18 ZIPs share exactly 0.55 or 0.15. If it was hand-set, the co-living profile P3 may pass by construction. single_family_friendly is 0.65 for 33 ZIPs and could act as a proxy for familial status. Is it safe to use, or should we drop it?
 9. **pet_friendly:** is there a data source you intended, or should we drop the tag?
-10. **Co-leaser budget:** is per-person share with an even split the right reading? Should co-leasers use 2-bedroom rents?
+10. **Co-leaser rent:** we treat the budget as the couple's total. Should co-leasers be compared against 2-bedroom rents rather than all-unit median rent?
 11. Should the MCP tools follow your `mcp_server.py` / `tools.py` contracts? Is a Streamlit demo expected?
 
 ## Run it

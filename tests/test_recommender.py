@@ -326,17 +326,15 @@ def test_invalid_priorities_rejected(tmp_path, weights):
         engine.recommend(request(weights=weights))
 
 
-def test_co_leaser_budget_is_each_persons_share(tmp_path):
-    engine = snapshot(tmp_path, [area("00001", 2900, transit=1), area("00002", 3100, transit=1)])
+def test_co_leaser_budget_is_household_total(tmp_path):
+    engine = snapshot(tmp_path, [area("00001", 1500, transit=1), area("00002", 1600, transit=1)])
     alone = engine.recommend(request())
-    assert alone["status"] == "no_matches"
-    assert alone["applied_filters"]["budget_basis"] == "total_monthly_usd"
     shared = engine.recommend(request(household="with_co_leaser"))
     assert [row["zip"] for row in shared["results"]] == ["00001"]
-    filters = shared["applied_filters"]
-    assert filters["budget_basis"] == "per_person_share"
-    assert filters["combined_budget_usd"] == 3000
-    assert any("each person's share" in text for text in shared["warnings"])
+    assert shared["results"] == alone["results"]
+    assert shared["applied_filters"]["budget_basis"] == "household_total_monthly_usd"
+    assert any("household's total" in text for text in shared["warnings"])
+    assert not any("household's total" in text for text in alone["warnings"])
 
 
 def test_near_scores_distance_to_named_neighborhood(tmp_path):

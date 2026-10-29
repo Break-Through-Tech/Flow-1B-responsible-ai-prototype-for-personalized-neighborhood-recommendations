@@ -1,6 +1,6 @@
 # Recommendation baseline: October 11, 2026
 
-> **October 28 update:** requests now accept `weights` (priority 1-3 per tag) and `near` (up to 3 neighborhood names or ZIPs); a co-leaser's `budget_max` is their own share (combined = x2, with a warning); results add `usps_city`; and `feature_set="census"` (`--features census`) proposes measured transit, social, walkable and quiet. Starter features remain the default. See [karla_review.md](karla_review.md) for the pipeline, results and open questions. Sections below describe the October 11 baseline.
+> **October 28 update:** requests now accept `weights` (priority 1-3 per tag) and `near` (up to 3 neighborhood names or ZIPs); `budget_max` is the household total (with a co-leaser it covers both people; a warning says so); results add `usps_city`; and `feature_set="census"` (`--features census`) proposes measured transit, social, walkable and quiet. Starter features remain the default. See [karla_review.md](karla_review.md) for the pipeline, results and open questions. Sections below describe the October 11 baseline.
 
 ## Implemented scope
 

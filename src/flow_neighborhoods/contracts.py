@@ -78,15 +78,6 @@ class Request:
     def weight(self, key: str) -> int:
         return dict(self.weights).get(key, 1)
 
-    @property
-    def household_size(self) -> int:
-        return 2 if self.household == "with_co_leaser" else 1
-
-    @property
-    def combined_budget(self) -> float:
-        """budget_max is each person's share; a co-leaser household splits rent evenly."""
-        return self.budget_max * self.household_size
-
     def clarification(self) -> str | None:
         if not self.tags:
             return "Choose at least one lifestyle priority."

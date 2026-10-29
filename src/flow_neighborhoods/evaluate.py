@@ -41,9 +41,7 @@ def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
                     "relevant_ranks": dict(sorted(relevant_ranks.items())),
                     "mean_score": mean(item["score"] for item in results) if results else None,
                     "budget_pass": all(
-                        0
-                        < item["median_rent_usd"]
-                        <= response["applied_filters"]["combined_budget_usd"]
+                        0 < item["median_rent_usd"] <= response["applied_filters"]["budget_max"]
                         for item in results
                     )
                     if results
