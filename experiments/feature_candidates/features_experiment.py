@@ -20,7 +20,7 @@ from flow_neighborhoods.contracts import Request  # noqa: E402
 from flow_neighborhoods.evaluate import evaluate  # noqa: E402
 
 census = Path(sys.argv[1])
-base = Recommender("data")
+base = Recommender("data", feature_set="provided")
 ZIPS = [a["zip"] for a in base.areas]
 NAMES = {a["zip"]: a["area_name"] for a in base.areas}
 
@@ -98,7 +98,7 @@ profiles = json.load(open("eval/recommendation_profiles.json"))
 
 
 def engine_with(config):
-    e = Recommender("data")
+    e = Recommender("data", feature_set="provided")
     for a in e.areas:
         for feat, cand in config.items():
             a[feat] = PROVIDED[feat][a["zip"]] if cand == "provided" else P[cand][a["zip"]]

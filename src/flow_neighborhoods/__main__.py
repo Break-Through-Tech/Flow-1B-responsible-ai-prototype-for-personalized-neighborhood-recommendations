@@ -19,7 +19,7 @@ def main():
     parser.add_argument("--tags", nargs="*", default=[])
     parser.add_argument("--k", type=int, default=3)
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
-    parser.add_argument("--features", choices=FEATURE_SETS, default="provided")
+    parser.add_argument("--features", choices=FEATURE_SETS, default="census")
     parser.add_argument(
         "--weight", action="append", default=[], metavar="TAG=1|2|3", help="priority of a tag"
     )

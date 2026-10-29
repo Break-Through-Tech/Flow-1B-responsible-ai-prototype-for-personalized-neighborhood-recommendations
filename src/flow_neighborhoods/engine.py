@@ -14,10 +14,10 @@ from .data import DataError, apply_census, load_places, load_snapshot, normalize
 # baseline, kept for comparison: it normalizes by the whole area vector, so e.g.
 # a strong social score makes an area rank lower for a transit-only request.
 SCORERS = {"mean": "mean-v1", "cosine": "cosine-v1"}
-# "provided" ranks on area_features_cleaned.csv as is. "census" replaces the
-# starter proxies for transit, social, walkable and quiet with measured values
-# (see data.apply_census); it is a proposal until the data owners adopt it.
-FEATURE_SETS = ("provided", "census")
+# "census" (default) replaces the starter proxies for transit, social, walkable
+# and quiet with measured values (see data.apply_census). "provided" ranks on
+# area_features_cleaned.csv as is, kept for comparison.
+FEATURE_SETS = ("census", "provided")
 # A name covering more ZIPs than this (e.g. "Miami") is too broad to mean "near".
 MAX_NEAR_ZIPS = 10
 
@@ -34,7 +34,7 @@ def miles(a: dict, b: dict) -> float:
 
 class Recommender:
     def __init__(
-        self, data_dir: str | Path = "data", scorer: str = "mean", feature_set: str = "provided"
+        self, data_dir: str | Path = "data", scorer: str = "mean", feature_set: str = "census"
     ):
         if scorer not in SCORERS:
             raise ValueError(f"scorer must be one of {', '.join(SCORERS)}.")
@@ -199,10 +199,11 @@ class Recommender:
                 "Rent is a snapshot area-level estimate; actual prices and availability are unverified.",
                 "Lifestyle scores are starter proxies. All text evidence is demo content."
                 if self.feature_set == "provided"
-                else "transit and walkable use residents' commute and car ownership (ACS 2018-22); "
-                "social and quiet use business counts by mailing ZIP (2021) and population "
-                "density. They are proxies, not direct measures of service, nightlife or noise. "
-                "pet_friendly and co_living keep starter values. All text evidence is demo content.",
+                else "transit and walkable are commute shares of residents (ACS 2018-22); social "
+                "counts restaurants and bars by mailing ZIP (2021); quiet is modeled 2020 road "
+                "and aviation noise (BTS), averaged per ZIP. They are proxies, not direct "
+                "measures of service, nightlife or sound at an address. pet_friendly and "
+                "co_living keep starter values. All text evidence is demo content.",
             ],
         }
         if co_leaser:

@@ -51,7 +51,7 @@ def snapshot(tmp_path, areas, scorer="mean"):
     write_csv(
         tmp_path / "crowd_text_snippets.csv", ["snippet_id", "zip", "source", "theme", "text"], []
     )
-    return Recommender(tmp_path, scorer=scorer)
+    return Recommender(tmp_path, scorer=scorer, feature_set="provided")
 
 
 def test_budget_before_ranking_and_exact_boundary(tmp_path):
@@ -113,7 +113,9 @@ def test_uninformative_features_are_disclosed(tmp_path):
     result = engine.recommend(request(tags=["pet_friendly"]))
     assert any("pet_friendly is 0.6 for every ZIP" in text for text in result["warnings"])
     assert any("results are in ZIP order" in text for text in result["warnings"])
-    cosine = Recommender(tmp_path, scorer="cosine")  # pet_friendly is in its vector, unrequested
+    cosine = Recommender(
+        tmp_path, scorer="cosine", feature_set="provided"
+    )  # pet_friendly is in its vector, unrequested
     assert not any("pet_friendly is" in text for text in cosine.recommend(request())["warnings"])
 
 
@@ -202,7 +204,7 @@ def test_missing_required_column(tmp_path):
     snapshot(tmp_path, [area("00001")])
     (tmp_path / "area_features_cleaned.csv").write_text("zip\n00001\n", encoding="utf-8")
     with pytest.raises(DataError):
-        Recommender(tmp_path)
+        Recommender(tmp_path, feature_set="provided")
 
 
 def test_demo_evidence_preserved_without_sentiment_claim(tmp_path):
@@ -220,7 +222,7 @@ def test_demo_evidence_preserved_without_sentiment_claim(tmp_path):
             }
         ],
     )
-    engine = Recommender(tmp_path)
+    engine = Recommender(tmp_path, feature_set="provided")
     evidence = engine.crowd_themes("00001")["evidence"][0]
     assert evidence["text"] == "Not quiet at night."
     assert evidence["is_demo"] and evidence["polarity"] == "unknown"
@@ -251,8 +253,12 @@ def test_repository_snapshot_and_all_profiles():
     profiles = json.loads((root / "eval/recommendation_profiles.json").read_text())
     for scorer in ("mean", "cosine"):
         check_repository_profiles(Recommender(root / "data", scorer=scorer), profiles)
-    census = Recommender(root / "data", feature_set="census")
+    check_repository_profiles(Recommender(root / "data", feature_set="provided"), profiles)
+    census = Recommender(root / "data")
+    assert census.feature_set == "census"
     check_repository_profiles(census, profiles)
+    airport = census.recommend(request(budget_max=10000, tags=["quiet"], k=5))
+    assert "33122" not in [row["zip"] for row in airport["results"]]
     social = census.recommend(request(budget_max=10000, tags=["social", "walkable", "transit"]))
     assert social["excluded_counts"]["missing_features"] == 0
     brickell = census.recommend(request(budget_max=2000, near=["Brickell"], weights={"near": 3}))
@@ -342,7 +348,7 @@ def test_near_scores_distance_to_named_neighborhood(tmp_path):
         tmp_path, [area("00001", transit=1), area("00002", transit=1), area("00003", transit=1)]
     )
     places(tmp_path, THREE_PLACES, [("Brickell", "00001"), ("Homestead", "00003")])
-    engine = Recommender(tmp_path)
+    engine = Recommender(tmp_path, feature_set="provided")
     result = engine.recommend(request(near=["brickell"], weights={"near": 2}))
     assert [row["zip"] for row in result["results"]] == ["00001", "00002", "00003"]
     assert result["results"][0]["distance_miles"] == 0
@@ -362,7 +368,7 @@ def test_near_rejects_unknown_and_overly_broad_names(tmp_path):
         {z: (1, 25.7, -80.2, "Miami") for z in zips},
         [("Brickell", "00001"), *(("Miami", z) for z in zips)],
     )
-    engine = Recommender(tmp_path)
+    engine = Recommender(tmp_path, feature_set="provided")
     with pytest.raises(ValidationError, match="Did you mean Brickell"):
         engine.recommend(request(near=["Brickel"]))
     with pytest.raises(ValidationError, match="specific neighborhood"):
@@ -390,39 +396,44 @@ def census_snapshot(tmp_path, areas, rows):
 
 
 def test_census_features_measure_distinct_things(tmp_path):
-    # Sorted columns: bar_establishments, food_drink_establishments, households,
-    # households_no_vehicle, population, transit_commuters, walk_commuters, workers
+    # Sorted columns: food_drink_establishments, noise_share_ge_55db,
+    # transit_commuters, walk_commuters, workers
     engine = census_snapshot(
         tmp_path,
         [area("00001"), area("00002"), area("00003")],
         {
-            "00001": (9, 90, 100, 60, 30000, 40, 30, 100),  # dense, nightlife, transit
-            "00002": (0, 40, 100, 10, 8000, 5, 20, 100),  # restaurants, no bars
-            "00003": (0, 2, 100, 2, 500, 1, 1, 100),  # rural
+            "00001": (90, 0.4, 40, 30, 100),  # downtown: venues, transit, some noise
+            "00002": (40, 0.7, 5, 20, 100),  # beside a highway: loudest
+            "00003": (2, 0.0, 1, 1, 100),  # rural
         },
     )
     social = engine.recommend(request(tags=["social"]))
     assert [row["zip"] for row in social["results"]] == ["00001", "00002", "00003"]
     quiet = engine.recommend(request(tags=["quiet"]))
-    assert [row["zip"] for row in quiet["results"]] == ["00003", "00002", "00001"]
+    assert [row["zip"] for row in quiet["results"]] == ["00003", "00001", "00002"]
     both = engine.recommend(request(tags=["social", "quiet"]))
-    assert len({row["score"] for row in both["results"]}) > 1
-    assert both["results"][0]["measures"]["bars_per_sqmi"] is not None
+    assert len({row["score"] for row in both["results"]}) == 3
+    assert both["results"][0]["measures"]["noise_share_ge_55db"] == 0.4
     assert both["feature_set"] == "census"
     assert "census_features.csv" in both["data_version"]
-    assert any("ACS 2018-22" in text for text in both["warnings"])
+    assert any("road and aviation noise" in text for text in both["warnings"])
 
 
 def test_census_missing_inputs_exclude_only_when_requested(tmp_path):
     engine = census_snapshot(
         tmp_path,
         [area("00001", transit=1), area("00002", transit=1)],
-        {"00001": (1, 10, 100, 10, 1000, 10, 10, 100), "00002": (1, 10, 0, 0, 1000, 10, 10, 0)},
+        {"00001": (10, 0.1, 10, 10, 100), "00002": (10, 0.1, 10, 10, 0)},
     )
     transit = engine.recommend(request())
     assert transit["excluded_counts"]["missing_features"] == 1
     social = engine.recommend(request(tags=["social"]))
     assert social["returned_count"] == 2
+
+
+def test_census_rejects_invalid_noise_share(tmp_path):
+    with pytest.raises(DataError):
+        census_snapshot(tmp_path, [area("00001")], {"00001": (1, 1.5, 1, 1, 10)})
 
 
 def test_census_needs_geography(tmp_path):

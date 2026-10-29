@@ -41,15 +41,15 @@ One row per Miami-Dade ZCTA (80 rows; the 5 PO-box ZIPs in `miami_dade_zctas.txt
 
 ## census_features.csv
 
-Raw counts per ZCTA for the proposed `census` feature set; the engine converts them to percentiles. Built by `experiments/feature_candidates/build_data.py`. Business counts are by mailing ZIP, which does not exactly match ZCTA boundaries.
+Raw measurements per ZCTA for the `census` feature set (the engine default); the engine converts each to a percentile among snapshot ZIPs. Built by `experiments/feature_candidates/build_data.py`; choices tested in `experiments/feature_candidates/decisions.py`.
 
-| Column | Description | Source |
-|--------|-------------|--------|
-| population | Total population | `public_features_cleaned.csv` (ACS 2018-22) |
-| workers, transit_commuters, walk_commuters | Workers 16+ by means of transportation to work | ACS 2018-22 B08301 (E001, E010, E019) |
-| households, households_no_vehicle | Households and those with no vehicle | ACS 2018-22 B08201 (E001, E002) |
-| food_drink_establishments | Restaurants and bars (NAICS 722) | ZIP Code Business Patterns 2021 |
-| bar_establishments | Drinking places, incl. bars and nightclubs (NAICS 7224) | ZIP Code Business Patterns 2021 |
+| Column | Description | Source | Feature |
+|--------|-------------|--------|---------|
+| workers, transit_commuters, walk_commuters | Workers 16+ by means of transportation to work | ACS 2018-22 B08301 (E001, E010, E019) | transit, walkable |
+| food_drink_establishments | Restaurants and bars (NAICS 722), by mailing ZIP | ZIP Code Business Patterns 2021 | social (per sq mi) |
+| noise_share_ge_55db | Share of the ZCTA's area with >= 55 dB 24-hour LAeq road or aviation noise | BTS National Transportation Noise Map 2020, read from its public map tiles (~35 m pixels) within Census TIGERweb 2020 ZCTA boundaries (`experiments/feature_candidates/noise.py`) | quiet (1 - percentile) |
+
+The noise map is modeled, covers road and aviation only, and BTS advises against using it for individual locations; it is used only as a ZIP-wide share.
 
 ## neighborhood_aliases.csv
 

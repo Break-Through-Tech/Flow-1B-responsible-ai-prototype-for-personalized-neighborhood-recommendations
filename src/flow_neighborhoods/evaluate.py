@@ -74,7 +74,7 @@ def main():
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--profiles", type=Path, default=Path("eval/recommendation_profiles.json"))
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
-    parser.add_argument("--features", choices=FEATURE_SETS, default="provided")
+    parser.add_argument("--features", choices=FEATURE_SETS, default="census")
     parser.add_argument(
         "--output", type=Path, help="default: outputs/recommender_<scorer>_<features>.json"
     )

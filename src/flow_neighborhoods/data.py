@@ -91,14 +91,11 @@ def load_snapshot(directory: Path) -> tuple[list[dict], dict[str, list[dict]], d
 
 CENSUS_COLUMNS = {
     "zip",
-    "population",
     "workers",
     "transit_commuters",
     "walk_commuters",
-    "households",
-    "households_no_vehicle",
     "food_drink_establishments",
-    "bar_establishments",
+    "noise_share_ge_55db",
 }
 
 
@@ -151,11 +148,12 @@ def load_places(directory: Path) -> tuple[dict, dict, dict]:
 def apply_census(directory: Path, areas: list[dict], geography: dict) -> dict:
     """Replace the placeholder lifestyle scores with measured ones (percentiles).
 
-    transit  = mean(transit-commute share, no-vehicle household share)   ACS 2018-22
-    social   = restaurants and bars per sq mi                             ZBP 2021
-    walkable = walk-to-work share                                         ACS 2018-22
-    quiet    = mean(1 - population density, 1 - bars per sq mi)           ACS, ZBP
-    pet_friendly and co_living_friendly keep their provided values.
+    transit  = share of workers commuting by public transit      ACS 2018-22 B08301
+    social   = restaurants and bars per sq mi                    ZIP Business Patterns 2021
+    walkable = share of workers who walk to work                 ACS 2018-22 B08301
+    quiet    = 1 - share of land at >= 55 dB road/aviation noise  BTS noise map 2020
+    pet_friendly and co_living_friendly keep their provided values. Choices were
+    made with experiments/feature_candidates/decisions.py.
     """
     if not geography:
         raise DataError("The census feature set needs zcta_geography.csv for land area.")
@@ -169,30 +167,27 @@ def apply_census(directory: Path, areas: list[dict], geography: dict) -> dict:
         def get(column, row=row):
             return number(row[column]) if row else None
 
+        noise = get("noise_share_ge_55db")
+        if noise is not None and not 0 <= noise <= 1:
+            raise DataError(f"{area['zip']}: noise_share_ge_55db must be between 0 and 1.")
         measures[area["zip"]] = {
             "transit_commute_share": ratio(get("transit_commuters"), get("workers")),
-            "no_vehicle_share": ratio(get("households_no_vehicle"), get("households")),
             "food_drink_per_sqmi": ratio(get("food_drink_establishments"), land),
             "walk_commute_share": ratio(get("walk_commuters"), get("workers")),
-            "population_per_sqmi": ratio(get("population"), land),
-            "bars_per_sqmi": ratio(get("bar_establishments"), land),
+            "noise_share_ge_55db": noise,
         }
-    names = next(iter(measures.values())).keys()
-    pct = {name: percentiles({z: m[name] for z, m in measures.items()}) for name in names}
-
-    def mean(*values):
-        return None if None in values else sum(values) / len(values)
-
-    def inverse(value):
-        return None if value is None else 1 - value
-
+    pct = {
+        name: percentiles({z: m[name] for z, m in measures.items()})
+        for name in next(iter(measures.values()))
+    }
     for area in areas:
         z = area["zip"]
+        loud = pct["noise_share_ge_55db"][z]
         area.update(
-            transit=mean(pct["transit_commute_share"][z], pct["no_vehicle_share"][z]),
+            transit=pct["transit_commute_share"][z],
             social=pct["food_drink_per_sqmi"][z],
             walkable=pct["walk_commute_share"][z],
-            quiet=mean(inverse(pct["population_per_sqmi"][z]), inverse(pct["bars_per_sqmi"][z])),
+            quiet=None if loud is None else 1 - loud,
             measures=measures[z],
         )
     return {path.name: digest(path)}
