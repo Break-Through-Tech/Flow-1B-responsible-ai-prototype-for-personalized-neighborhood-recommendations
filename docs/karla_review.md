@@ -89,14 +89,15 @@ Each open choice was tested with and without the change (`experiments/feature_ca
 | Named neighborhoods | Supported through a separate dictionary (`data/neighborhood_aliases.csv`): your starter labels plus USPS city names. A name covering more than 10 ZIPs (e.g. "Miami") is rejected as too broad, and typos get a suggestion. |
 | Area names | `area_name` is unchanged. A new `usps_city` field comes from `data/zcta_geography.csv`. |
 | Family data | Not used anywhere. Familial status is fair-housing protected, and `single_family_friendly` stays unused for that reason. |
-| Starter data | The reference repo is not treated as the only source of truth. Columns that shipped with the challenge data are kept as provided. |
-| P4 labels | Left unchanged and reported as a known miss; editing test answers to fit the engine would be circular. |
+| Starter data | Everything in the repo's initial commit (data, test profiles, fixtures) is yours. Your public reference repo is not treated as the complete source, so columns it doesn't produce (e.g. `co_living_friendly`) are kept as provided. |
+| P4 labels | Your expected answers are left unchanged and P4 is reported as a known miss; editing them to fit the engine would be circular. |
 
 ## Questions for you
 
-1. Who wrote the expected ZIPs in the five profiles, and how? Can you share more, or should we write a held-out set?
-2. Is anything known about how `co_living_friendly` was made? It ranks the three anchor ZIPs highest.
-3. Is a Streamlit demo expected for the final presentation?
+1. **Test profiles:** how did you choose the expected ZIPs (local knowledge, data, or both)? Could you write more, including suburban and conflicting-priority cases, or should we write a held-out set that you review? Each tag is currently tested by only 1–3 profiles.
+2. **P4 (quiet + pets):** what did "quiet" mean when you chose Coconut Grove, Coral Gables and Pinecrest: low noise, or settled residential with greenery? With noise data they rank 11th, 31st and 14th, behind quieter outer ZIPs.
+3. **`co_living_friendly`:** how did you build it? It ranks your three anchor ZIPs highest (Wynwood 0.92, Brickell 0.90, Downtown 0.88), and 18 ZIPs share exactly 0.55 or 0.15. P3 passes even without it, so it isn't inflating results, but we'd like to document its source. Same question for `single_family_friendly` (unused, because of the familial-status risk).
+4. Is a Streamlit demo expected for the final presentation?
 
 ## Run it
 
