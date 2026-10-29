@@ -73,3 +73,7 @@ data/external/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Raw downloads and caches for experiments/feature_candidates (re-downloadable)
+experiments/feature_candidates/census/
+experiments/feature_candidates/noise/

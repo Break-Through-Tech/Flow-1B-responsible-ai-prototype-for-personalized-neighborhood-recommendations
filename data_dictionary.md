@@ -28,6 +28,39 @@
 
 Plain-text list of Miami-Dade ZIP codes used to scope the project.
 
+## zcta_geography.csv
+
+One row per Miami-Dade ZCTA (80 rows; the 5 PO-box ZIPs in `miami_dade_zctas.txt` have no ZCTA). Built by `experiments/feature_candidates/build_data.py`. Used for land area (census feature set), distance for `near` requests, and the USPS city shown next to `area_name` (which is never overwritten).
+
+| Column | Type | Description | Source |
+|--------|------|-------------|--------|
+| zip | string | 5-digit ZCTA | |
+| land_sqmi | float | Land area, square miles | 2023 Census Gazetteer `ALAND_SQMI` (public domain) |
+| lat, lon | float | ZCTA internal point | Gazetteer `INTPTLAT`, `INTPTLONG` |
+| usps_city | string | USPS city name for the ZIP | ZIP Code Business Patterns 2021 |
+
+## census_features.csv
+
+Raw measurements per ZCTA for the `census` feature set (the engine default); the engine converts each to a percentile among snapshot ZIPs. Built by `experiments/feature_candidates/build_data.py`; choices tested in `experiments/feature_candidates/decisions.py`.
+
+| Column | Description | Source | Feature |
+|--------|-------------|--------|---------|
+| workers, transit_commuters, walk_commuters | Workers 16+ by means of transportation to work | ACS 2018-22 B08301 (E001, E010, E019) | transit, walkable |
+| food_drink_establishments | Restaurants and bars (NAICS 722), by mailing ZIP | ZIP Code Business Patterns 2021 | social (per sq mi) |
+| noise_share_ge_55db | Share of the ZCTA's area with >= 55 dB 24-hour LAeq road or aviation noise | BTS National Transportation Noise Map 2020, read from its public map tiles (~35 m pixels) within Census TIGERweb 2020 ZCTA boundaries (`experiments/feature_candidates/noise.py`) | quiet (1 - percentile) |
+
+The noise map is modeled, covers road and aviation only, and BTS advises against using it for individual locations; it is used only as a ZIP-wide share.
+
+## neighborhood_aliases.csv
+
+Name-to-ZIP dictionary for `near` requests. One row per (alias, zip); a name can map to several ZIPs (e.g. Doral). Names covering more than 10 ZIPs (e.g. "Miami") are rejected as too broad.
+
+| Column | Description |
+|--------|-------------|
+| alias | Neighborhood or city name as a user might type it |
+| zip | 5-digit ZCTA |
+| source | `area_features.csv area_name` (advisor's starter labels) or `USPS city, ZIP Code Business Patterns 2021` |
+
 ## area_features.csv
 
 **Blended starter file** for the recommender. Joins public rent/migration fields with normalized preference proxies (transit, social, quiet, pet-friendly, walkable). Some `area_name` labels are illustrative neighborhood names.

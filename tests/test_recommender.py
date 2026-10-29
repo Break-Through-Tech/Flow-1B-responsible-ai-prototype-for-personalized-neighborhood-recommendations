@@ -7,7 +7,7 @@ import pytest
 
 from flow_neighborhoods import Recommender
 from flow_neighborhoods.contracts import ALL_FEATURES, ValidationError
-from flow_neighborhoods.data import DataError
+from flow_neighborhoods.data import CENSUS_COLUMNS, DataError
 from flow_neighborhoods.evaluate import evaluate
 
 
@@ -51,7 +51,7 @@ def snapshot(tmp_path, areas, scorer="mean"):
     write_csv(
         tmp_path / "crowd_text_snippets.csv", ["snippet_id", "zip", "source", "theme", "text"], []
     )
-    return Recommender(tmp_path, scorer=scorer)
+    return Recommender(tmp_path, scorer=scorer, feature_set="provided")
 
 
 def test_budget_before_ranking_and_exact_boundary(tmp_path):
@@ -113,7 +113,9 @@ def test_uninformative_features_are_disclosed(tmp_path):
     result = engine.recommend(request(tags=["pet_friendly"]))
     assert any("pet_friendly is 0.6 for every ZIP" in text for text in result["warnings"])
     assert any("results are in ZIP order" in text for text in result["warnings"])
-    cosine = Recommender(tmp_path, scorer="cosine")  # pet_friendly is in its vector, unrequested
+    cosine = Recommender(
+        tmp_path, scorer="cosine", feature_set="provided"
+    )  # pet_friendly is in its vector, unrequested
     assert not any("pet_friendly is" in text for text in cosine.recommend(request())["warnings"])
 
 
@@ -202,7 +204,7 @@ def test_missing_required_column(tmp_path):
     snapshot(tmp_path, [area("00001")])
     (tmp_path / "area_features_cleaned.csv").write_text("zip\n00001\n", encoding="utf-8")
     with pytest.raises(DataError):
-        Recommender(tmp_path)
+        Recommender(tmp_path, feature_set="provided")
 
 
 def test_demo_evidence_preserved_without_sentiment_claim(tmp_path):
@@ -220,7 +222,7 @@ def test_demo_evidence_preserved_without_sentiment_claim(tmp_path):
             }
         ],
     )
-    engine = Recommender(tmp_path)
+    engine = Recommender(tmp_path, feature_set="provided")
     evidence = engine.crowd_themes("00001")["evidence"][0]
     assert evidence["text"] == "Not quiet at night."
     assert evidence["is_demo"] and evidence["polarity"] == "unknown"
@@ -251,6 +253,16 @@ def test_repository_snapshot_and_all_profiles():
     profiles = json.loads((root / "eval/recommendation_profiles.json").read_text())
     for scorer in ("mean", "cosine"):
         check_repository_profiles(Recommender(root / "data", scorer=scorer), profiles)
+    check_repository_profiles(Recommender(root / "data", feature_set="provided"), profiles)
+    census = Recommender(root / "data")
+    assert census.feature_set == "census"
+    check_repository_profiles(census, profiles)
+    airport = census.recommend(request(budget_max=10000, tags=["quiet"], k=5))
+    assert "33122" not in [row["zip"] for row in airport["results"]]
+    social = census.recommend(request(budget_max=10000, tags=["social", "walkable", "transit"]))
+    assert social["excluded_counts"]["missing_features"] == 0
+    brickell = census.recommend(request(budget_max=2000, near=["Brickell"], weights={"near": 3}))
+    assert brickell["results"][0]["zip"] == "33130"
     assert Recommender(root / "data").crowd_themes("33130")["evidence"]
 
 
@@ -265,3 +277,166 @@ def check_repository_profiles(engine, profiles):
         assert response["eligible_count"] + sum(response["excluded_counts"].values()) == len(
             engine.areas
         )
+
+
+def places(tmp_path, geography, aliases):
+    write_csv(
+        tmp_path / "zcta_geography.csv",
+        ["zip", "land_sqmi", "lat", "lon", "usps_city"],
+        [
+            {"zip": z, "land_sqmi": s, "lat": la, "lon": lo, "usps_city": c}
+            for z, (s, la, lo, c) in geography.items()
+        ],
+    )
+    write_csv(
+        tmp_path / "neighborhood_aliases.csv",
+        ["alias", "zip", "source"],
+        [{"alias": a, "zip": z, "source": "test"} for a, z in aliases],
+    )
+
+
+THREE_PLACES = {
+    "00001": (1, 25.76, -80.19, "Miami"),
+    "00002": (1, 25.80, -80.19, "Miami"),
+    "00003": (1, 25.60, -80.40, "Homestead"),
+}
+
+
+def test_priorities_weight_the_mean(tmp_path):
+    engine = snapshot(tmp_path, [area("00001", transit=1), area("00002", walkable=1)])
+    equal = engine.recommend(request(tags=["transit", "walkable"]))
+    assert [row["score"] for row in equal["results"]] == [0.5, 0.5]
+    weighted = engine.recommend(request(tags=["transit", "walkable"], weights={"walkable": 3}))
+    assert [row["zip"] for row in weighted["results"]] == ["00002", "00001"]
+    assert weighted["results"][0]["score"] == pytest.approx(0.75)
+    first = weighted["results"][0]["matched_preferences"]
+    assert [(x["tag"], x["priority"]) for x in first] == [("transit", 1), ("walkable", 3)]
+    assert sum(x["contribution"] for x in first) == pytest.approx(0.75)
+    assert weighted["applied_filters"]["weights"] == {"transit": 1, "walkable": 3}
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        {"social": 2},
+        {"transit": 0},
+        {"transit": 4},
+        {"transit": True},
+        {"transit": "2"},
+        ["transit"],
+    ],
+)
+def test_invalid_priorities_rejected(tmp_path, weights):
+    engine = snapshot(tmp_path, [area("00001", transit=1)])
+    with pytest.raises(ValidationError):
+        engine.recommend(request(weights=weights))
+
+
+def test_co_leaser_budget_is_household_total(tmp_path):
+    engine = snapshot(tmp_path, [area("00001", 1500, transit=1), area("00002", 1600, transit=1)])
+    alone = engine.recommend(request())
+    shared = engine.recommend(request(household="with_co_leaser"))
+    assert [row["zip"] for row in shared["results"]] == ["00001"]
+    assert shared["results"] == alone["results"]
+    assert shared["applied_filters"]["budget_basis"] == "household_total_monthly_usd"
+    assert any("household's total" in text for text in shared["warnings"])
+    assert not any("household's total" in text for text in alone["warnings"])
+
+
+def test_near_scores_distance_to_named_neighborhood(tmp_path):
+    snapshot(
+        tmp_path, [area("00001", transit=1), area("00002", transit=1), area("00003", transit=1)]
+    )
+    places(tmp_path, THREE_PLACES, [("Brickell", "00001"), ("Homestead", "00003")])
+    engine = Recommender(tmp_path, feature_set="provided")
+    result = engine.recommend(request(near=["brickell"], weights={"near": 2}))
+    assert [row["zip"] for row in result["results"]] == ["00001", "00002", "00003"]
+    assert result["results"][0]["distance_miles"] == 0
+    assert result["results"][-1]["matched_preferences"][-1]["feature_value"] == 0
+    assert result["applied_filters"]["near"] == {"brickell": ["00001"]}
+    assert result["results"][0]["usps_city"] == "Miami"
+    assert result["results"][0]["area_name"] == "Area 00001"
+    by_zip = engine.recommend(request(near=["00003"]))
+    assert by_zip["results"][0]["zip"] == "00003"
+
+
+def test_near_rejects_unknown_and_overly_broad_names(tmp_path):
+    zips = [f"{i:05d}" for i in range(1, 13)]
+    snapshot(tmp_path, [area(z, transit=1) for z in zips])
+    places(
+        tmp_path,
+        {z: (1, 25.7, -80.2, "Miami") for z in zips},
+        [("Brickell", "00001"), *(("Miami", z) for z in zips)],
+    )
+    engine = Recommender(tmp_path, feature_set="provided")
+    with pytest.raises(ValidationError, match="Did you mean Brickell"):
+        engine.recommend(request(near=["Brickel"]))
+    with pytest.raises(ValidationError, match="specific neighborhood"):
+        engine.recommend(request(near=["Miami"]))
+    with pytest.raises(ValidationError):
+        engine.recommend(request(near=["a", "b", "c", "d"]))
+
+
+def test_near_without_place_data_is_a_data_error(tmp_path):
+    engine = snapshot(tmp_path, [area("00001", transit=1)])
+    with pytest.raises(DataError):
+        engine.recommend(request(near=["Brickell"]))
+
+
+def census_snapshot(tmp_path, areas, rows):
+    snapshot(tmp_path, areas)
+    places(tmp_path, THREE_PLACES, [])
+    fields = sorted(CENSUS_COLUMNS - {"zip"})
+    write_csv(
+        tmp_path / "census_features.csv",
+        ["zip", *fields],
+        [dict(zip=z, **dict(zip(fields, values))) for z, values in rows.items()],
+    )
+    return Recommender(tmp_path, feature_set="census")
+
+
+def test_census_features_measure_distinct_things(tmp_path):
+    # Sorted columns: food_drink_establishments, noise_share_ge_55db,
+    # transit_commuters, walk_commuters, workers
+    engine = census_snapshot(
+        tmp_path,
+        [area("00001"), area("00002"), area("00003")],
+        {
+            "00001": (90, 0.4, 40, 30, 100),  # downtown: venues, transit, some noise
+            "00002": (40, 0.7, 5, 20, 100),  # beside a highway: loudest
+            "00003": (2, 0.0, 1, 1, 100),  # rural
+        },
+    )
+    social = engine.recommend(request(tags=["social"]))
+    assert [row["zip"] for row in social["results"]] == ["00001", "00002", "00003"]
+    quiet = engine.recommend(request(tags=["quiet"]))
+    assert [row["zip"] for row in quiet["results"]] == ["00003", "00001", "00002"]
+    both = engine.recommend(request(tags=["social", "quiet"]))
+    assert len({row["score"] for row in both["results"]}) == 3
+    assert both["results"][0]["measures"]["noise_share_ge_55db"] == 0.4
+    assert both["feature_set"] == "census"
+    assert "census_features.csv" in both["data_version"]
+    assert any("road and aviation noise" in text for text in both["warnings"])
+
+
+def test_census_missing_inputs_exclude_only_when_requested(tmp_path):
+    engine = census_snapshot(
+        tmp_path,
+        [area("00001", transit=1), area("00002", transit=1)],
+        {"00001": (10, 0.1, 10, 10, 100), "00002": (10, 0.1, 10, 10, 0)},
+    )
+    transit = engine.recommend(request())
+    assert transit["excluded_counts"]["missing_features"] == 1
+    social = engine.recommend(request(tags=["social"]))
+    assert social["returned_count"] == 2
+
+
+def test_census_rejects_invalid_noise_share(tmp_path):
+    with pytest.raises(DataError):
+        census_snapshot(tmp_path, [area("00001")], {"00001": (1, 1.5, 1, 1, 10)})
+
+
+def test_census_needs_geography(tmp_path):
+    snapshot(tmp_path, [area("00001")])
+    with pytest.raises(DataError):
+        Recommender(tmp_path, feature_set="census")
