@@ -9,10 +9,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 CLEANED_DIR = DATA_DIR / "cleaned"
+NEW_DATA_DIR = CLEANED_DIR / "new"
 HUD_PATH = RAW_DIR / "HUD-SAFMR.csv"
-ZORI_PATH = CLEANED_DIR / "Miami_rental_values.csv"
+ZORI_PATH = NEW_DATA_DIR / "Miami_rental_values.csv"
 ZCTA_PATH = RAW_DIR / "miami_dade_zctas.txt"
-OUTPUT_PATH = CLEANED_DIR / "Rental-Market.csv"
+OUTPUT_PATH = NEW_DATA_DIR / "Rental-Market.csv"
 
 FINAL_COLUMNS = [
     "zip_code",
@@ -93,20 +94,23 @@ def prepare_zori(allowed_zips: set[str]) -> pd.DataFrame:
         raise ValueError("Miami_rental_values.csv contains duplicate ZIP codes.")
     zori = zori[zori["zip_code"].isin(allowed_zips)].copy()
 
+    source_date_columns = [
+        column
+        for column in zori.columns
+        if pd.Series([column]).str.fullmatch(r"\d{4}-\d{2}-\d{2}").iloc[0]
+    ]
     month_columns = {
-        f"2026-{month:02d}-31": f"zori_2026_{month:02d}"
-        for month in [1, 3, 5, 7, 8]
+        column: f"zori_{column[:7].replace('-', '_')}"
+        for column in source_date_columns
     }
-    month_columns.update(
-        {"2026-02-28": "zori_2026_02", "2026-04-30": "zori_2026_04", "2026-06-30": "zori_2026_06"}
-    )
     required = list(month_columns)
     missing = [column for column in required if column not in zori.columns]
     if missing:
         raise ValueError(f"ZORI is missing required monthly columns: {missing}")
 
     zori = zori[["zip_code", *required]].rename(columns=month_columns)
-    zori["zori_latest_rent"] = zori["zori_2026_08"]
+    target_month_columns = list(month_columns.values())
+    zori["zori_latest_rent"] = zori[target_month_columns[-1]]
     zori["zori_source"] = "Zillow ZORI"
     return zori
 
@@ -121,19 +125,41 @@ def validate_output(rental_market: pd.DataFrame, allowed_zips: set[str]) -> None
         raise ValueError(f"Final output contains ZIP codes outside the allowlist: {sorted(invalid)}")
 
 
+def fill_missing_zori_values(
+    rental_market: pd.DataFrame,
+    zori: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Fill target ZORI fields from matching ZIP/date values in the source."""
+    zori_columns = [column for column in FINAL_COLUMNS if column.startswith("zori_")]
+    source = zori.set_index("zip_code")[zori_columns]
+    result = rental_market.set_index("zip_code").copy()
+    before = result[zori_columns].isna().sum()
+    result[zori_columns] = result[zori_columns].combine_first(source)
+    return result.reset_index(), before
+
+
 def main() -> None:
     allowed_zips = load_allowlist()
     hud = prepare_hud(allowed_zips)
     zori = prepare_zori(allowed_zips)
-    # Keep ZIP codes present in either source so missing benchmarks remain visible.
-    rental_market = zori.merge(hud, on="zip_code", how="outer", validate="one_to_one")
+    # Start with every allowed HUD ZIP, then fill matching ZORI fields by ZIP.
+    # This preserves ZIPs that have HUD benchmarks but no Zillow estimate.
+    rental_market = hud.copy()
+    for column in [column for column in FINAL_COLUMNS if column.startswith("zori_")]:
+        rental_market[column] = pd.NA
     rental_market = rental_market[FINAL_COLUMNS].sort_values("zip_code").reset_index(drop=True)
+    rental_market, missing_before_fill = fill_missing_zori_values(rental_market, zori)
     validate_output(rental_market, allowed_zips)
-    CLEANED_DIR.mkdir(parents=True, exist_ok=True)
+    NEW_DATA_DIR.mkdir(parents=True, exist_ok=True)
     rental_market.to_csv(OUTPUT_PATH, index=False)
     print(f"Saved {len(rental_market)} ZIP rows and {len(rental_market.columns)} columns to {OUTPUT_PATH}")
     print(f"Valid ZORI ZIPs retained: {len(zori)}")
     print(f"Valid HUD ZIPs retained: {len(hud)}")
+    print(f"ZORI missing before source merge:\n{missing_before_fill}")
+    print(
+        "ZORI values filled from Miami_rental_values.csv:\n"
+        f"{missing_before_fill - rental_market[[column for column in FINAL_COLUMNS if column.startswith('zori_')]].isna().sum()}"
+    )
     print(f"Missing-value counts:\n{rental_market.isna().sum()}")
 
 
