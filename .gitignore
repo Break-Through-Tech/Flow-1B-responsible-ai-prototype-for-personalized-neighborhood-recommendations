@@ -61,7 +61,6 @@ outputs/
 
 # Large or license-restricted source downloads.
 # Keep reproducible, approved snapshots elsewhere under data/ when needed.
-data/raw/
 data/external/
 
 # IDE settings
@@ -73,3 +72,7 @@ data/external/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+data/expanded_data_dictioonary.md
+data/raw/new/Zip_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv
+data/raw/new/transit-data/zcta_boundaries/
