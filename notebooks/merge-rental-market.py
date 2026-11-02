@@ -1,7 +1,11 @@
-"""Merge rental data by ZIP, fill source labels, and zero missing ZORI/growth values."""
+"""Merge rental data by ZIP and apply the canonical Miami rent cleaning rules."""
 
 import csv
 from pathlib import Path
+
+import pandas as pd
+
+from clean_miami_rents import clean_miami_rents
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -9,10 +13,6 @@ DATA_DIR = PROJECT_ROOT / "data" / "cleaned" / "new"
 RENTAL_MARKET_PATH = DATA_DIR / "Rental-Market.csv"
 RENT_TRENDS_PATH = DATA_DIR / "rent-trends.csv"
 OUTPUT_PATH = DATA_DIR / "miami-rents.csv"
-SOURCE_LABELS = {
-    "zori_source": "Zillow ZORI",
-    "hud_source": "HUD Small Area Fair Market Rents",
-}
 
 
 def load_by_zip(file_path: Path) -> tuple[list[str], dict[str, dict[str, str]]]:
@@ -45,28 +45,19 @@ def main() -> None:
         raise ValueError(f"Inputs share non-key columns: {sorted(overlapping)}")
 
     columns = market_columns + [column for column in trend_columns if column != "zip_code"]
-    zero_fill_columns = [
-        column
-        for column in columns
-        if (column.startswith("zori_") and column != "zori_source")
-        or (column.startswith("rent_") and column.endswith("_month_change_pct"))
-    ]
     zip_codes = sorted(set(market_rows) | set(trend_rows))
-    with OUTPUT_PATH.open("w", newline="", encoding="utf-8") as destination:
-        writer = csv.DictWriter(destination, fieldnames=columns, lineterminator="\n")
-        writer.writeheader()
-        for zip_code in zip_codes:
-            row = {**market_rows.get(zip_code, {}), **trend_rows.get(zip_code, {})}
-            for column in zero_fill_columns:
-                if not row.get(column, "").strip():
-                    row[column] = "0"
-            for column, label in SOURCE_LABELS.items():
-                if not row.get(column, "").strip():
-                    row[column] = label
-            writer.writerow(row)
+    rows = [
+        {**market_rows.get(zip_code, {}), **trend_rows.get(zip_code, {})}
+        for zip_code in zip_codes
+    ]
+    rental_market = pd.DataFrame(rows, columns=columns).replace("", pd.NA)
+    rental_market = clean_miami_rents(rental_market)
+    rental_market.to_csv(OUTPUT_PATH, index=False, na_rep="", lineterminator="\n")
 
     matched = len(set(market_rows) & set(trend_rows))
-    print(f"Saved {len(zip_codes)} ZIP rows and {len(columns)} columns to {OUTPUT_PATH}")
+    print(
+        f"Saved {len(zip_codes)} ZIP rows and {len(rental_market.columns)} columns to {OUTPUT_PATH}"
+    )
     print(f"ZIPs with data from both inputs: {matched}")
     print(f"ZIPs without trend data: {len(set(market_rows) - set(trend_rows))}")
     print(f"ZIPs without rental-market data: {len(set(trend_rows) - set(market_rows))}")
