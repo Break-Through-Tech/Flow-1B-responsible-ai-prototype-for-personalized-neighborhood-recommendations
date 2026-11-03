@@ -212,6 +212,14 @@ values, preserve valid zero measurements, calculate derived rent trends, and
 encode multi-valued fields where needed. The original source files remain in
 `raw/new/` so that the transformations can be reviewed and reproduced.
 
+## Learn more about the expanded data
+
+For detailed column definitions, data types, cleaning rules, source
+relationships, and intended use of the expanded datasets, refer to
+[`cleaned/new/data-dictiionary-new.md`](cleaned/new/data-dictiionary-new.md).
+This document is the primary reference for understanding the cleaned rental,
+transit, and area-name files in `cleaned/new/`.
+
 ## Related documentation and limitations
 
 - [`../data_dictionary.md`](../data_dictionary.md) describes the starter
