@@ -39,6 +39,44 @@ derived rent-trend features. ZIP codes are five-character strings.
   `stable`.
 - Outliers are retained; they are not winsorized or removed.
 
+## Miami-transit-cleaned.csv
+
+This model-ready export contains ZIP-level Miami-Dade transit service
+features. `zip_code` is retained as the label and join key. Transit mode
+values were expanded into one-hot indicator columns. Service dates, agency,
+source date, transit type text, and `accessible_stop_share` were removed.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `zip_code` | string | Five-digit Miami-Dade ZIP/ZCTA label and join key |
+| `transit_stop_count` | integer | Number of transit stops in the ZIP |
+| `unique_route_count` | integer | Number of distinct routes serving the ZIP |
+| `bus_route_count` | integer | Number of bus routes serving the ZIP |
+| `metrorail_route_count` | integer | Number of Metrorail routes serving the ZIP |
+| `metromover_route_count` | integer | Number of Metromover routes serving the ZIP |
+| `weekday_departures` | integer | Scheduled weekday departure events |
+| `saturday_departures` | integer | Scheduled Saturday departure events |
+| `sunday_departures` | integer | Scheduled Sunday departure events |
+| `weekday_median_headway_minutes` | numeric | Median scheduled gap between weekday departures |
+| `weekend_median_headway_minutes` | numeric | Median scheduled gap between weekend departures |
+| `morning_peak_departures` | integer | Scheduled departures during the morning peak |
+| `evening_peak_departures` | integer | Scheduled departures during the evening peak |
+| `wheelchair_accessible_trip_share` | numeric | Share of known trips marked wheelchair accessible |
+| `bike_allowed_trip_share` | numeric | Share of known trips marked bike allowed |
+| `transit_type_bus` | integer | One-hot indicator that bus service is represented in the ZIP |
+| `transit_type_metromover` | integer | One-hot indicator that Metromover service is represented in the ZIP |
+| `transit_type_metrorail` | integer | One-hot indicator that Metrorail service is represented in the ZIP |
+
+### Transit cleaning rules
+
+- `zip_code` is preserved as a five-character string label and join key.
+- The multi-label `transit_types` field was one-hot encoded using the `|`
+  separator.
+- Valid zero values were preserved; for example, zero Metrorail routes can
+  indicate that a ZIP is not served by Metrorail.
+- Headway outliers were retained because unusually long scheduled gaps can be
+  important to newcomer-facing transit explanations.
+
 ## Intended use and limitations
 
 This table is intended for ZIP-level descriptive analysis, model features,
