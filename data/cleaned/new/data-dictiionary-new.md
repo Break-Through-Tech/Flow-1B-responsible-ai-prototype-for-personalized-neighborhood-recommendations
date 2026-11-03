@@ -77,6 +77,35 @@ source date, transit type text, and `accessible_stop_share` were removed.
 - Headway outliers were retained because unusually long scheduled gaps can be
   important to newcomer-facing transit explanations.
 
+## Area-name-cleaned.csv
+
+This model-ready export contains ZIP-level postal city and area-name
+information. `zip_code` is retained as the label and join key. Secondary area
+names were converted from pipe-separated text into one-hot indicator columns.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `zip_code` | string | Five-digit Miami-Dade ZIP/ZCTA label and join key |
+| `postal_city` | categorical | Postal city associated with the ZIP code |
+| `primary_area_name` | categorical | Primary area name associated with the ZIP code |
+| `area_name_type` | categorical | Classification of the primary area name, such as `municipality`, `mixed`, or `census_designated_place` |
+| `has_secondary_area` | categorical | `T` when one or more secondary area names are present; `F` when the source value is missing |
+| `secondary_area_<name>` | integer | One-hot indicator for a secondary area name; `1` means the area is associated with the ZIP and `0` means it is not. The export contains one column for each distinct secondary area name, including examples such as `secondary_area_Opa-locka`, `secondary_area_Miami Lakes`, and `secondary_area_Westview` |
+
+### Area-name cleaning rules
+
+- `zip_code` is preserved as a five-character string label and join key.
+- `municipality_name`, `coverage_pct`, and `source` were removed because they
+  are metadata or provenance fields rather than model features.
+- Missing `secondary_area_names` values were represented by
+  `has_secondary_area = F`; non-missing values were represented by
+  `has_secondary_area = T`.
+- The pipe-separated `secondary_area_names` field was one-hot encoded using
+  the `|` separator. The original text field was removed after encoding.
+- Secondary-area one-hot columns contain integer `0` and `1` values and may
+  contain multiple `1` values for a single ZIP because a ZIP can be associated
+  with multiple secondary areas.
+
 ## Intended use and limitations
 
 This table is intended for ZIP-level descriptive analysis, model features,
