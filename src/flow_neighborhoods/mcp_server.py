@@ -1,164 +1,145 @@
-"""Read-only stdio MCP server exposing recommend and ethics; no model API needed."""
+"""Shared SDK 2.x MCP server: thin wrappers around tools/<name>.py logic."""
 
 import argparse
-import asyncio
-import json
 import logging
+import os
+from functools import cache
 from pathlib import Path
+from typing import Annotated, Literal
 
 from jsonschema import Draft202012Validator
-from mcp.server.lowlevel import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import CallToolResult, TextContent, Tool, ToolAnnotations
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import ToolAnnotations
+from pydantic import Field, StrictStr
 
-from .contracts import ValidationError
+from .contracts import Request, ValidationError
 from .data import DataError
-from .engine import SCORERS
-from .ethics import ethics
-from .tools import RecommendationTools
+from .engine import SCORERS, Recommender
+from .tools.crowd_themes import CrowdThemes
+from .tools.crowd_themes import crowd_themes as crowd_themes_logic
+from .tools.ethics import Ethics
+from .tools.ethics import ethics as ethics_logic
+from .tools.recommend import Recommendation
+from .tools.recommend import recommend as recommend_logic
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-
-RECOMMEND_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "budget_max": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "description": "Total household monthly budget in USD, including co-leasers combined.",
-        },
-        "household": {"type": "string", "enum": ["alone", "with_co_leaser"]},
-        "housing_preference": {"type": "string", "enum": ["own_apartment", "co_living"]},
-        "tags": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": (
-                "Lifestyle priorities: transit, social, quiet, pet_friendly, walkable, co_living. "
-                "Case/whitespace are normalized and duplicates removed. Empty means clarify."
-            ),
-        },
-        "k": {"type": "integer", "minimum": 1, "maximum": 5, "default": 3},
-    },
-    "required": ["budget_max", "household", "housing_preference", "tags"],
-    "additionalProperties": False,
-}
-ETHICS_SCHEMA = {"type": "object", "properties": {}, "additionalProperties": False}
-OUTPUT_SCHEMA = {
-    "type": "object",
-    "required": ["schema_version", "status"],
-    "properties": {
-        "schema_version": {"type": "string"},
-        "status": {"enum": ["ok", "no_matches", "needs_clarification", "error"]},
-    },
-    "additionalProperties": True,
-}
+READ_ONLY = ToolAnnotations(
+    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
+)
+Budget = Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]
+Count = Annotated[int, Field(strict=True, ge=1, le=5)]
 
 
-def result(payload: dict, *, is_error: bool = False) -> CallToolResult:
-    """Serve structured JSON and matching text for older MCP clients."""
-    return CallToolResult(
-        content=[TextContent(type="text", text=json.dumps(payload, allow_nan=False))],
-        structuredContent=payload,
-        isError=is_error,
-    )
+class NeighborhoodServer(MCPServer):
+    """Validate raw arguments before the SDK can coerce or discard them.
 
+    MCPServer's generated argument models accept extra keys and parse JSON inside
+    strings. Reject those for these tools, especially demographic/screening fields.
+    Use public list_tools/call_tool hooks, not SDK private registration internals.
+    """
 
-def error(code: str, message: str) -> CallToolResult:
-    return result(
-        {"schema_version": "1", "status": "error", "error": {"code": code, "message": message}},
-        is_error=True,
-    )
-
-
-def create_server(data_dir: str | Path = DEFAULT_DATA_DIR, scorer: str = "mean") -> Server:
-    """Create a server without loading CSVs or contacting any external service."""
-    backend = RecommendationTools(data_dir, scorer)
-    server = Server(
-        "flow-neighborhoods",
-        instructions=(
-            "Read ethics before use and enforce its policy before dispatching recommendations. "
-            "Rankings come from Python. Preserve tool warnings, evidence labels and empty states. "
-            "This server provides recommend and ethics only; no live listings or tenant scoring."
-        ),
-    )
-    annotations = ToolAnnotations(
-        readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
-    )
-    tools = [
-        Tool(
-            name="recommend",
-            description=(
-                "Rank Miami-Dade ZIPs using total monthly budget, explicit household, housing "
-                "preference and lifestyle tags. Apply hard budget filtering before ranking. "
-                "Returns snapshot estimates and labeled demo evidence, never real listings. "
-                "The agent must refuse prohibited requests before calling this tool."
-            ),
-            inputSchema=RECOMMEND_SCHEMA,
-            outputSchema=OUTPUT_SCHEMA,
-            annotations=annotations,
-        ),
-        Tool(
-            name="ethics",
-            description=(
-                "Return the versioned responsible-use policy, prohibited uses, synthetic-data "
-                "labels, data limitations and agent enforcement requirements. No arguments. "
-                "Describes policy; does not classify a user prompt or enforce agent routing."
-            ),
-            inputSchema=ETHICS_SCHEMA,
-            outputSchema=OUTPUT_SCHEMA,
-            annotations=annotations,
-        ),
-    ]
-    validators = {tool.name: Draft202012Validator(tool.inputSchema) for tool in tools}
-
-    @server.list_tools()
-    async def list_tools() -> list[Tool]:
+    async def list_tools(self):
+        tools = await super().list_tools()
+        for tool in tools:
+            tool.input_schema["additionalProperties"] = False
         return tools
 
-    # We validate against the published schema here to return one stable error envelope,
-    # with no type coercion or silent dropping of demographic/unsupported arguments.
-    @server.call_tool(validate_input=False)
-    async def call_tool(name: str, arguments: dict) -> CallToolResult:
-        if name not in validators:
-            return error("unknown_tool", "This server provides recommend and ethics only.")
-        if not validators[name].is_valid(arguments):
-            return error(
-                "invalid_arguments",
-                "Arguments must match the tool's inputSchema; unsupported fields are rejected.",
-            )
+    async def call_tool(self, name, arguments, context=None):
+        tools = {tool.name: tool for tool in await self.list_tools()}
+        if name not in tools:
+            raise ToolError(f"unknown_tool: {name}")
+        if not Draft202012Validator(tools[name].input_schema).is_valid(arguments):
+            raise ToolError("invalid_arguments: Arguments must match the tool's input schema.")
+        if name == "recommend":
+            try:
+                Request.parse(arguments)
+            except ValidationError as exc:
+                raise ToolError(f"invalid_arguments: {exc}") from exc
+        return await super().call_tool(name, arguments, context)
+
+
+def data_dir() -> Path:
+    """Om's FLOW_DATA_DIR convention, otherwise the checkout's prepared data."""
+    return Path(os.environ.get("FLOW_DATA_DIR", DEFAULT_DATA_DIR)).expanduser().resolve()
+
+
+def create_server(directory: str | Path | None = None, scorer: str = "mean") -> MCPServer:
+    if scorer not in SCORERS:
+        raise ValueError(f"scorer must be one of {', '.join(SCORERS)}.")
+    configured = Path(directory).expanduser().resolve() if directory is not None else None
+    app = NeighborhoodServer(
+        "flow-neighborhoods",
+        instructions=(
+            "Tools over a Miami-Dade ZIP snapshot. Read ethics and enforce its policy before "
+            "calling recommend. Rank and quote only from tool output; preserve warnings, "
+            "evidence labels and empty states. Never invent rents, listings or reviews."
+        ),
+    )
+
+    @cache
+    def engine() -> Recommender:
+        return Recommender(configured if configured is not None else data_dir(), scorer=scorer)
+
+    def run(logic, *args):
         try:
-            payload = backend.recommend(arguments) if name == "recommend" else ethics()
-            return result(payload)
+            return logic(engine(), *args)
         except ValidationError as exc:
-            return error("invalid_arguments", str(exc))
-        except (DataError, OSError, UnicodeError):
+            raise ToolError(f"invalid_arguments: {exc}") from exc
+        except (DataError, OSError, UnicodeError) as exc:
             LOGGER.exception("Recommendation snapshot could not be loaded")
-            return error(
-                "data_unavailable",
-                "The configured snapshot is missing, unreadable or invalid. "
-                "Check --data-dir and the prepared CSV schemas; no rent fallback was used.",
-            )
-        except Exception:
-            LOGGER.exception("Tool execution failed")
-            return error("internal_error", "Tool execution failed; check the server's stderr log.")
+            raise ToolError(
+                "data_unavailable: Neighborhood data is missing, unreadable or invalid; "
+                "check FLOW_DATA_DIR or --data-dir. No rent fallback was used."
+            ) from exc
 
-    return server
+    @app.tool(annotations=READ_ONLY, structured_output=True)
+    def crowd_themes(zip_code: str) -> CrowdThemes:
+        """What people say about a ZIP: demo snippets, evidence IDs and theme counts.
+
+        zip_code is a five-digit string. Labels are topics, not sentiment. Preserve
+        demo labels and follow the returned grounding guidance.
+        """
+        return run(crowd_themes_logic, zip_code)
+
+    @app.tool(annotations=READ_ONLY, structured_output=True)
+    def recommend(
+        budget_max: Budget,
+        household: Literal["alone", "with_co_leaser"],
+        housing_preference: Literal["own_apartment", "co_living"],
+        tags: list[StrictStr],
+        k: Count = 3,
+    ) -> Recommendation:
+        """Rank ZIPs with a hard total household monthly USD budget; never live listings.
+
+        Tags: transit, social, quiet, pet_friendly, walkable, co_living. Ranking is
+        performed by Python. Preserve warnings, demo labels and empty/clarification
+        states. The agent must refuse prohibited requests before calling this tool.
+        """
+        return run(recommend_logic, budget_max, household, housing_preference, tags, k)
+
+    @app.tool(annotations=READ_ONLY, structured_output=True)
+    def ethics() -> Ethics:
+        """Return responsible-use policy, prohibited uses and snapshot limitations.
+
+        No arguments or dataset required. This describes policy; the agent must
+        enforce refusals before calling recommend. It does not classify chat messages.
+        """
+        return ethics_logic()
+
+    return app
 
 
-async def serve(server: Server) -> None:
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+server = create_server()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Flow recommend/ethics MCP server (stdio)")
-    parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser = argparse.ArgumentParser(description="Flow neighborhood MCP server (SDK 2.x, stdio)")
+    parser.add_argument("--data-dir", type=Path, default=None)
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
     args = parser.parse_args()
-    # Never print diagnostics to stdout: it belongs exclusively to the MCP transport.
-    logging.basicConfig(level=logging.WARNING)
-    asyncio.run(serve(create_server(args.data_dir, args.scorer)))
+    create_server(args.data_dir, args.scorer).run()
 
 
 if __name__ == "__main__":

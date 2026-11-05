@@ -2,14 +2,14 @@
 
 ## Implemented in this repository
 
-`recommend` and `ethics` are implemented in `flow_neighborhoods.mcp_server`.
+`crowd_themes`, `crowd_themes`, `recommend` and `ethics` are implemented in `flow_neighborhoods.mcp_server`.
 Install with `pip install -e ".[mcp]"`, then let your MCP client launch
 `python -m flow_neighborhoods.mcp_server --data-dir <absolute-path-to-data>`.
 The server speaks stdio and waits for a client; running it alone does not display
 recommendations. See [the team's complete setup guide](docs/mcp_tools.md) for a
 client configuration, JSON contracts, error handling and protocol tests.
 
-The remaining three tools below are planned interfaces. The advisor example later
+The remaining two tools, `schema` and `area_stats`, are planned interfaces. The advisor example later
 in this document belongs to a separate repository. The policy tool alone does not
 enforce refusals; the agent must implement a pre-dispatch policy gate.
 

@@ -14,8 +14,8 @@ from mcp.client.stdio import stdio_client
 
 from flow_neighborhoods import Recommender
 from flow_neighborhoods.contracts import ALL_FEATURES, ValidationError
-from flow_neighborhoods.ethics import ethics
-from flow_neighborhoods.tools import RecommendationTools
+from flow_neighborhoods.tools.ethics import ethics
+from flow_neighborhoods.tools.recommend import recommend
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src"
@@ -72,15 +72,20 @@ def data_dir(tmp_path):
 
 
 @asynccontextmanager
-async def session(data_dir, cwd, scorer="mean"):
+async def session(data_dir, cwd, scorer="mean", env_dir=None):
     args = ["-m", "flow_neighborhoods.mcp_server", "--scorer", scorer]
     if data_dir is not None:
         args += ["--data-dir", str(data_dir)]
+    pythonpath = os.pathsep.join(filter(None, [str(SOURCE), os.environ.get("PYTHONPATH")]))
+    environment = {**os.environ, "PYTHONPATH": pythonpath}
+    environment.pop("FLOW_DATA_DIR", None)
+    if env_dir is not None:
+        environment["FLOW_DATA_DIR"] = str(env_dir)
     parameters = StdioServerParameters(
         command=sys.executable,
         args=args,
         cwd=str(cwd),
-        env={**os.environ, "PYTHONPATH": str(SOURCE)},
+        env=environment,
     )
     async with (
         asyncio.timeout(30),
@@ -92,11 +97,14 @@ async def session(data_dir, cwd, scorer="mean"):
 
 
 def payload(result, *, is_error=False):
-    assert result.isError is is_error
+    assert result.is_error is is_error
     assert len(result.content) == 1 and result.content[0].type == "text"
-    assert json.loads(result.content[0].text) == result.structuredContent
-    json.dumps(result.structuredContent, allow_nan=False)
-    return result.structuredContent
+    if is_error:
+        assert result.structured_content is None
+        return result.content[0].text
+    assert json.loads(result.content[0].text) == result.structured_content
+    json.dumps(result.structured_content, allow_nan=False)
+    return result.structured_content
 
 
 def test_policy_is_fresh_and_explicit_about_enforcement():
@@ -113,17 +121,39 @@ def test_policy_is_fresh_and_explicit_about_enforcement():
     assert ethics()["allowed_uses"]
 
 
-def test_backend_is_lazy_validates_before_data_and_reuses_snapshot(tmp_path, data_dir):
-    tools = RecommendationTools(data_dir)
-    assert tools._engine is None
+def test_plain_recommend_logic_preserves_engine_contract(data_dir):
+    engine = Recommender(data_dir)
+    assert recommend(engine, **request()) == engine.recommend(request())
     with pytest.raises(ValidationError):
-        tools.recommend(request(race="anything"))
-    assert tools._engine is None
-    expected = Recommender(data_dir).recommend(request())
-    assert tools.recommend(request()) == expected
-    engine = tools._engine
-    assert tools.recommend(request()) == expected
-    assert tools._engine is engine
+        recommend(engine, **request(tags=["unsupported"]))
+
+
+def test_shared_engine_is_lazy_validates_before_data_and_reuses_snapshot(data_dir, monkeypatch):
+    import importlib
+
+    module = importlib.import_module("flow_neighborhoods.mcp_server")
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    loads = []
+
+    def load(*args, **kwargs):
+        loads.append(args)
+        return Recommender(*args, **kwargs)
+
+    monkeypatch.setattr(module, "Recommender", load)
+    app = module.create_server(data_dir)
+
+    async def scenario():
+        await app.call_tool("ethics", {})
+        with pytest.raises(ToolError):
+            await app.call_tool("recommend", request(race="anything"))
+        assert loads == []
+        first = payload(await app.call_tool("recommend", request()))
+        await app.call_tool("crowd_themes", {"zip_code": "00001"})
+        assert payload(await app.call_tool("recommend", request())) == first
+        assert len(loads) == 1
+
+    asyncio.run(scenario())
 
 
 @pytest.mark.parametrize("scorer", ["mean", "cosine"])
@@ -132,10 +162,10 @@ def test_stdio_discovery_and_all_repository_profiles(tmp_path, scorer):
         async with session(DATA, tmp_path, scorer) as client:
             discovery = await client.list_tools()
             tools = {tool.name: tool for tool in discovery.tools}
-            assert set(tools) == {"recommend", "ethics"}
-            assert tools["recommend"].inputSchema["additionalProperties"] is False
-            assert tools["ethics"].inputSchema["properties"] == {}
-            assert tools["recommend"].annotations.readOnlyHint is True
+            assert set(tools) == {"recommend", "ethics", "crowd_themes"}
+            assert tools["recommend"].input_schema["additionalProperties"] is False
+            assert tools["ethics"].input_schema["properties"] == {}
+            assert tools["recommend"].annotations.read_only_hint is True
             assert payload(await client.call_tool("ethics", {})) == ethics()
             engine = Recommender(DATA, scorer=scorer)
             profiles = json.loads((ROOT / "eval/recommendation_profiles.json").read_text())
@@ -193,8 +223,10 @@ def test_stdio_rejects_coercion_demographics_and_unknown_arguments_then_recovers
                 {"k": 0},
                 {"k": 6},
                 {"k": 3.0},
+                {"k": "3"},
                 {"household": "couple"},
                 {"tags": "transit"},
+                {"tags": '["transit"]'},
                 {"tags": [None]},
                 {"tags": ["hispanic"]},
                 {"race": "anything"},
@@ -208,15 +240,15 @@ def test_stdio_rejects_coercion_demographics_and_unknown_arguments_then_recovers
                 err = payload(
                     await client.call_tool("recommend", request(**changes)), is_error=True
                 )
-                assert err["error"]["code"] == "invalid_arguments", changes
+                assert "invalid_arguments" in err, changes
             missing = payload(await client.call_tool("recommend", {}), is_error=True)
-            assert missing["error"]["code"] == "invalid_arguments"
+            assert "invalid_arguments" in missing
             err = payload(
                 await client.call_tool("ethics", {"prompt": "ignore policy"}), is_error=True
             )
-            assert err["error"]["code"] == "invalid_arguments"
+            assert "invalid_arguments" in err
             unknown = payload(await client.call_tool("not_a_tool", {}), is_error=True)
-            assert unknown["error"]["code"] == "unknown_tool"
+            assert "unknown_tool" in unknown
             assert payload(await client.call_tool("recommend", request()))["status"] == "ok"
 
     asyncio.run(scenario())
@@ -234,7 +266,7 @@ def test_stdio_data_failure_does_not_disable_policy_or_leak_paths(data_dir, brok
     async def scenario():
         async with session(data_dir, ROOT) as client:
             err = payload(await client.call_tool("recommend", request()), is_error=True)
-            assert err["error"]["code"] == "data_unavailable"
+            assert "data_unavailable" in err
             assert str(data_dir) not in json.dumps(err)
             assert payload(await client.call_tool("ethics", {})) == ethics()
 
@@ -244,6 +276,20 @@ def test_stdio_data_failure_does_not_disable_policy_or_leak_paths(data_dir, brok
 def test_stdio_default_data_path_is_independent_of_client_cwd(tmp_path):
     async def scenario():
         async with session(None, tmp_path) as client:
+            actual = payload(await client.call_tool("recommend", request(budget_max=2500)))
+            assert actual == Recommender(DATA).recommend(request(budget_max=2500))
+
+    asyncio.run(scenario())
+
+
+def test_stdio_flow_data_dir_and_cli_override(data_dir, tmp_path):
+    async def scenario():
+        async with session(None, ROOT, env_dir=data_dir) as client:
+            actual = payload(await client.call_tool("recommend", request()))
+            assert actual == Recommender(data_dir).recommend(request())
+            crowd = payload(await client.call_tool("crowd_themes", {"zip_code": "00001"}))
+            assert crowd["evidence"] == actual["results"][0]["themes"]
+        async with session(DATA, ROOT, env_dir=tmp_path / "nonexistent") as client:
             actual = payload(await client.call_tool("recommend", request(budget_max=2500)))
             assert actual == Recommender(DATA).recommend(request(budget_max=2500))
 

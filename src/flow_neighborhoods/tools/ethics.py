@@ -1,9 +1,25 @@
 """Versioned project policy, available without data files or an API key."""
 
+from typing import Any, TypedDict
+
+
+class Ethics(TypedDict):
+    schema_version: str
+    status: str
+    policy_version: str
+    scope: str
+    allowed_uses: list[str]
+    prohibited_uses: list[dict[str, str]]
+    data_limits: dict[str, str]
+    agent_requirements: list[str]
+    enforcement: dict[str, Any]
+    references: list[str]
+
+
 POLICY_VERSION = "2026-11-03"
 
 
-def ethics() -> dict:
+def ethics() -> Ethics:
     """Describe responsible use. This is not a natural-language request classifier."""
     return {
         "schema_version": "1",

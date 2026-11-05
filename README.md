@@ -80,10 +80,11 @@ they match the requested priorities, and attaches labeled demo-text evidence. Se
 The first baseline passes budget checks but has low relevance on the supplied fixtures;
 it is ready for error analysis and integration work.
 
-### MCP tools: recommend and ethics
+### MCP tools: crowd_themes, recommend and ethics
 
-The team now has a stdio MCP server for `recommend` and `ethics`. It delegates ranking
-to the existing engine and returns structured JSON, including explicit errors and
+The team now has one SDK 2.x stdio MCP server for `crowd_themes`, `recommend` and
+`ethics`, following Om's module-per-tool pattern. It delegates ranking to the
+existing engine and returns structured JSON, readable tool errors and
 the original warnings. No Gemini key is needed. `ethics` describes policy; an agent
 must still enforce prohibited-request refusals before calling `recommend`.
 See [setup, tool contracts, tests, and integration limits](docs/mcp_tools.md).
