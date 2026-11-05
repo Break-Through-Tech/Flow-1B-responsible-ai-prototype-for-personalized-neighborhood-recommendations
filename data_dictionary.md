@@ -59,7 +59,32 @@ Name-to-ZIP dictionary for `near` requests. One row per (alias, zip); a name can
 |--------|-------------|
 | alias | Neighborhood or city name as a user might type it |
 | zip | 5-digit ZCTA |
-| source | `area_features.csv area_name` (advisor's starter labels) or `USPS city, ZIP Code Business Patterns 2021` |
+| match | `primary`: the place is in this ZIP. `secondary`: the ZIP also touches it; used only when the name has no primary match |
+| source | `area_features.csv area_name` (advisor's starter labels), `USPS city, ZIP Code Business Patterns 2021`, or Joana's `area-name.csv` |
+
+## zip_area_names.csv
+
+Display names per ZCTA, from Joana's `data/raw/new/area-name.csv` (USPS City State Product; Census 2020 ZCTA-to-Place relationship). Shown as `neighborhood` / `other_areas` in results; `area_name` (starter label) is unchanged. Covers all 80 snapshot ZIPs, including the 24 that the starter data labels "ZCTA5 xxxxx".
+
+| Column | Description |
+|--------|-------------|
+| zip | 5-digit ZCTA |
+| neighborhood | Primary area name (e.g. 33131 -> Brickell; the starter data labels it "South Beach") |
+| other_areas | Other named areas the ZIP touches, `|`-separated |
+| area_name_type | neighborhood, municipality, census_designated_place, mixed, ... |
+| source | Provenance |
+
+## transit_service.csv
+
+Scheduled transit service per ZCTA from Miami-Dade Transit GTFS (stops spatially joined to ZCTAs), from Joana's `data/raw/new/miami_transit.csv`. **Descriptive only:** shown as `transit_service` in results, not used for ranking. Tested as the transit score in `experiments/feature_candidates/joana_decisions.py`, it was worse on the profiles than the commute share.
+
+| Column | Description |
+|--------|-------------|
+| transit_stops, routes | Stops in the ZIP; distinct routes serving it |
+| metrorail_routes, metromover_routes | Rail routes serving the ZIP |
+| weekday_departures | Scheduled weekday departure events |
+| weekday_median_headway_minutes | Median scheduled gap between weekday departures |
+| data_as_of | Date the table was produced |
 
 ## area_features.csv
 

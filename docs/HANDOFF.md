@@ -2,6 +2,10 @@
 
 Last updated: October 21, 2026. Owner: Om (`ompatel181005`). Written for an AI coding agent continuing this work; read it fully before changing anything.
 
+## Update: November 4, 2026 (Joana's data)
+
+Tested Joana's new data from `origin/joana` (no PR yet; her branch moves `data/*.csv` into `data/cleaned/` and `data/raw/`, which will break engine paths, so coordinate before it merges). Cached copies are in `experiments/feature_candidates/joana/` (git-ignored); `build_data.py` derives `data/zip_area_names.csv`, `data/transit_service.csv` and the `match` column in `neighborhood_aliases.csv`. Adopted: area names (rankings unchanged) and transit service as descriptive output. Rejected for ranking: GTFS transit score (worse on P5) and HUD rents (P@3 falls; P4 fails); the latter is raised with Karla. Zillow 2026 rents are 64% median-imputed, so they're unusable. 58 tests. MCP work is on separate branch `om-mcp-crowd-themes` (PR #18), which conflicts with Daniel's PR #19 (mcp 1.30 vs 2.x, both add `mcp_server.py`).
+
 ## Note: authorship (October 28, 2026)
 
 Per Om: everything in the repo's initial commit (`ac60486`, git author Hari Raghavan) was authored by the challenge advisor, Karla Reyes. That includes `data/` (`co_living_friendly`, `single_family_friendly`), `eval/` profiles and fixtures, and the docs. Treat the profiles' expected ZIPs as Karla's labels. Her public reference repo is incomplete and not the only source of truth.

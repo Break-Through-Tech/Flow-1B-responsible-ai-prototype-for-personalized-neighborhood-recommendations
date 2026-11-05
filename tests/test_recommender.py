@@ -440,3 +440,77 @@ def test_census_needs_geography(tmp_path):
     snapshot(tmp_path, [area("00001")])
     with pytest.raises(DataError):
         Recommender(tmp_path, feature_set="census")
+
+
+def test_primary_names_win_and_secondary_names_fill_gaps(tmp_path):
+    snapshot(tmp_path, [area("00001"), area("00002"), area("00003")])
+    places(tmp_path, THREE_PLACES, [])
+    write_csv(
+        tmp_path / "neighborhood_aliases.csv",
+        ["alias", "zip", "match", "source"],
+        [
+            {"alias": "Coral Gables", "zip": "00001", "match": "primary", "source": "t"},
+            {"alias": "Coral Gables", "zip": "00002", "match": "secondary", "source": "t"},
+            {"alias": "Little Haiti", "zip": "00003", "match": "secondary", "source": "t"},
+        ],
+    )
+    engine = Recommender(tmp_path, feature_set="provided")
+    assert engine.resolve_near(("Coral Gables",)) == {"Coral Gables": ["00001"]}
+    assert engine.resolve_near(("little haiti",)) == {"little haiti": ["00003"]}
+
+
+def test_area_names_and_transit_service_are_shown_not_ranked(tmp_path):
+    areas = [area("00001", transit=0.2), area("00002", transit=0.9)]
+    engine = snapshot(tmp_path, areas)
+    places(tmp_path, THREE_PLACES, [])
+    write_csv(
+        tmp_path / "zip_area_names.csv",
+        ["zip", "neighborhood", "other_areas", "area_name_type", "source"],
+        [
+            {
+                "zip": "00001",
+                "neighborhood": "Brickell",
+                "other_areas": "Downtown|Brickell Key",
+                "area_name_type": "neighborhood",
+                "source": "t",
+            }
+        ],
+    )
+    service = {
+        "transit_stops": 60,
+        "routes": 28,
+        "metrorail_routes": 1,
+        "metromover_routes": 1,
+        "weekday_departures": 8000,
+        "weekday_median_headway_minutes": 16,
+    }
+    write_csv(
+        tmp_path / "transit_service.csv",
+        ["zip", *service, "data_as_of"],
+        [{"zip": "00001", **service, "data_as_of": "2026-10-27"}],
+    )
+    enriched = Recommender(tmp_path, feature_set="provided").recommend(request())
+    plain = engine.recommend(request())
+    assert [r["zip"] for r in enriched["results"]] == [r["zip"] for r in plain["results"]]
+    row = next(r for r in enriched["results"] if r["zip"] == "00001")
+    assert row["neighborhood"] == "Brickell" and row["area_name"] == "Area 00001"
+    assert row["other_areas"] == ["Downtown", "Brickell Key"]
+    assert (
+        row["transit_service"]["routes"] == 28
+        and row["transit_service"]["data_as_of"] == "2026-10-27"
+    )
+    other = next(r for r in enriched["results"] if r["zip"] == "00002")
+    assert other["neighborhood"] is None and "transit_service" not in other
+    assert {"zip_area_names.csv", "transit_service.csv"} <= set(enriched["data_version"])
+
+
+def test_repository_names_cover_snapshot_and_resolve_neighborhoods():
+    engine = Recommender(Path(__file__).resolve().parents[1] / "data")
+    named = [
+        a["zip"] for a in engine.areas if engine.geography.get(a["zip"], {}).get("neighborhood")
+    ]
+    assert len(named) == len(engine.areas)
+    assert engine.resolve_near(("Little Haiti", "Brickell Key")) == {
+        "Little Haiti": ["33150"],
+        "Brickell Key": ["33131"],
+    }

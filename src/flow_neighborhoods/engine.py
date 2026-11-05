@@ -84,7 +84,9 @@ class Recommender:
             if re.fullmatch(r"[0-9]{5}", name):
                 zips = [name] if name in known else []
             else:
-                zips = self.aliases.get(normalize_name(name), {}).get("zips", [])
+                entry = self.aliases.get(normalize_name(name), {})
+                # Primary names say where a place is; secondary names only fill gaps.
+                zips = entry.get("zips") or entry.get("secondary_zips", [])
             zips = [z for z in zips if self.geography.get(z, {}).get("lat") is not None]
             if not zips:
                 hint = difflib.get_close_matches(normalize_name(name), self.aliases, n=1)
@@ -149,6 +151,8 @@ class Recommender:
                 "zip": area["zip"],
                 "area_name": area["area_name"],
                 "usps_city": self.geography.get(area["zip"], {}).get("usps_city"),
+                "neighborhood": self.geography.get(area["zip"], {}).get("neighborhood"),
+                "other_areas": list(self.geography.get(area["zip"], {}).get("other_areas", [])),
                 "score": min(1.0, sum(contributions)),
                 "score_method": self.model_version,
                 "median_rent_usd": rent,
@@ -169,6 +173,8 @@ class Recommender:
                 item["distance_miles"] = round(near[area["zip"]][0], 1)
             if "measures" in area:
                 item["measures"] = dict(area["measures"])
+            if "transit_service" in self.geography.get(area["zip"], {}):
+                item["transit_service"] = dict(self.geography[area["zip"]]["transit_service"])
             candidates.append(item)
         candidates.sort(key=lambda item: (-item["score"], item["zip"]))
         return candidates, excluded

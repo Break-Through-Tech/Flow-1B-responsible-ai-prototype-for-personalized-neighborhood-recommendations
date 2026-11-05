@@ -8,6 +8,9 @@ Inputs (see docs/HANDOFF.md for download URLs):
 - ACS 2018-2022 5-year B08301 (commute mode), filtered to Miami-Dade
 - ZIP Code Business Patterns 2021 detail, filtered to Miami-Dade (zbp_miami.csv)
 - noise/noise_by_zip.csv from noise.py (BTS 2020 road + aviation noise per ZCTA)
+- joana/area-name.csv and joana/miami_transit.csv: Joana's sourced ZIP names (USPS City
+  State Product + Census 2020 ZCTA-to-Place) and GTFS transit service per ZIP, copied from
+  origin/joana data/raw/new/ until her data restructure merges
 
 Outputs raw counts only; the engine does all scaling so it stays reviewable.
 """
@@ -65,16 +68,52 @@ with open(data / "census_features.csv", "w", newline="", encoding="utf-8") as ou
             e.get("722///", 0), noise.get(z, ""),
         ])
 
+joana = Path(__file__).parent / "joana"
+names = {r["zip_code"]: r for r in csv.DictReader(open(joana / "area-name.csv"))}
+NAME_SOURCE = "Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)"
+with open(data / "zip_area_names.csv", "w", newline="", encoding="utf-8") as out:
+    w = csv.writer(out)
+    w.writerow(["zip", "neighborhood", "other_areas", "area_name_type", "source"])
+    for z in zips:
+        if z in names:
+            r = names[z]
+            w.writerow([z, r["primary_area_name"], r["secondary_area_names"], r["area_name_type"], NAME_SOURCE])
+
+service = {r["zip_code"]: r for r in csv.DictReader(open(joana / "miami_transit.csv"))}
+with open(data / "transit_service.csv", "w", newline="", encoding="utf-8") as out:
+    w = csv.writer(out)
+    w.writerow([
+        "zip", "transit_stops", "routes", "metrorail_routes", "metromover_routes",
+        "weekday_departures", "weekday_median_headway_minutes", "data_as_of",
+    ])
+    for z in zips:
+        if z in service:
+            r = service[z]
+            w.writerow([
+                z, r["transit_stop_count"], r["unique_route_count"], r["metrorail_route_count"],
+                r["metromover_route_count"], r["weekday_departures"],
+                r["weekday_median_headway_minutes"], r["data_as_of"],
+            ])
+
+# match: primary names define where a place is; secondary names (areas a ZIP also
+# touches) are used only when no primary name matches.
 aliases = {}
 for r in csv.DictReader(open(data / "area_features.csv")):
     if not r["area_name"].startswith("ZCTA5"):
-        aliases.setdefault((r["area_name"], r["zip"]), "area_features.csv area_name")
+        aliases.setdefault((r["area_name"], r["zip"]), ("primary", "area_features.csv area_name"))
 for z in zips:
     if city.get(z):
-        aliases.setdefault((city[z], z), "USPS city, ZIP Code Business Patterns 2021")
+        aliases.setdefault((city[z], z), ("primary", "USPS city, ZIP Code Business Patterns 2021"))
+for z, r in names.items():
+    if z in zips:
+        aliases.setdefault((r["primary_area_name"], z), ("primary", NAME_SOURCE))
+for z, r in names.items():
+    if z in zips:
+        for other in filter(None, (n.strip() for n in r["secondary_area_names"].split("|"))):
+            aliases.setdefault((other, z), ("secondary", NAME_SOURCE))
 with open(data / "neighborhood_aliases.csv", "w", newline="", encoding="utf-8") as out:
     w = csv.writer(out)
-    w.writerow(["alias", "zip", "source"])
-    for (alias, z), source in sorted(aliases.items()):
-        w.writerow([alias, z, source])
-print("wrote zcta_geography.csv, census_features.csv, neighborhood_aliases.csv")
+    w.writerow(["alias", "zip", "match", "source"])
+    for (alias, z), (match, source) in sorted(aliases.items()):
+        w.writerow([alias, z, match, source])
+print("wrote zcta_geography.csv, census_features.csv, zip_area_names.csv, transit_service.csv, neighborhood_aliases.csv")

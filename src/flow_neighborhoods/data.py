@@ -137,11 +137,45 @@ def load_places(directory: Path) -> tuple[dict, dict, dict]:
     aliases = {}
     for row in read_rows(paths[1], {"alias", "zip", "source"}):
         key = normalize_name(row["alias"])
-        if not key:
-            raise DataError("neighborhood_aliases.csv: empty alias.")
-        entry = aliases.setdefault(key, {"label": row["alias"].strip(), "zips": []})
-        if row["zip"] not in entry["zips"]:
-            entry["zips"].append(row["zip"])
+        match = row.get("match", "").strip() or "primary"
+        if not key or match not in ("primary", "secondary"):
+            raise DataError("neighborhood_aliases.csv: empty alias or invalid match.")
+        entry = aliases.setdefault(
+            key, {"label": row["alias"].strip(), "zips": [], "secondary_zips": []}
+        )
+        bucket = entry["zips"] if match == "primary" else entry["secondary_zips"]
+        if row["zip"] not in bucket:
+            bucket.append(row["zip"])
+    # Optional enrichments, shown in results but never used for ranking.
+    names_path = directory / "zip_area_names.csv"
+    if names_path.exists():
+        for z, row in unique(
+            read_rows(names_path, {"zip", "neighborhood", "other_areas", "source"}), "zip"
+        ).items():
+            geography.setdefault(z, {}).update(
+                neighborhood=row["neighborhood"].strip() or None,
+                other_areas=[n.strip() for n in row["other_areas"].split("|") if n.strip()],
+            )
+        paths.append(names_path)
+    service_path = directory / "transit_service.csv"
+    if service_path.exists():
+        columns = {
+            "transit_stops",
+            "routes",
+            "metrorail_routes",
+            "metromover_routes",
+            "weekday_departures",
+            "weekday_median_headway_minutes",
+        }
+        for z, row in unique(
+            read_rows(service_path, {"zip", "data_as_of", *columns}), "zip"
+        ).items():
+            geography.setdefault(z, {})["transit_service"] = {
+                **{c: number(row[c]) for c in sorted(columns)},
+                "data_as_of": row["data_as_of"],
+                "source": "Miami-Dade Transit GTFS, aggregated per ZCTA by Joana",
+            }
+        paths.append(service_path)
     return geography, aliases, {path.name: digest(path) for path in paths}
 
 

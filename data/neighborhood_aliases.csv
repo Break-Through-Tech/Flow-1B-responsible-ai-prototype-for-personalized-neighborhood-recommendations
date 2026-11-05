@@ -1,141 +1,350 @@
-alias,zip,source
-Allapattah,33142,area_features.csv area_name
-Aventura,33160,area_features.csv area_name
-Aventura,33180,area_features.csv area_name
-Bal Harbour,33154,area_features.csv area_name
-Biscayne Gardens,33167,area_features.csv area_name
-Biscayne North,33141,area_features.csv area_name
-Brickell,33130,area_features.csv area_name
-Brickell Hammock,33129,area_features.csv area_name
-Coconut Grove,33133,area_features.csv area_name
-Coral Gables,33114,"USPS city, ZIP Code Business Patterns 2021"
-Coral Gables,33134,area_features.csv area_name
-Coral Gables/U.M.,33146,area_features.csv area_name
-Coral Way,33145,area_features.csv area_name
-Cutler Bay,33189,area_features.csv area_name
-Cutler Bay,33190,area_features.csv area_name
-Design District,33137,area_features.csv area_name
-Doral,33166,area_features.csv area_name
-Doral,33172,area_features.csv area_name
-Doral,33178,area_features.csv area_name
-Doral,33182,area_features.csv area_name
-Doral,33194,area_features.csv area_name
-Downtown,33128,area_features.csv area_name
-Edgewater,33132,area_features.csv area_name
-Golden Glades,33169,area_features.csv area_name
-Goulds,33170,area_features.csv area_name
-Health District,33136,area_features.csv area_name
-Hialeah,33010,"USPS city, ZIP Code Business Patterns 2021"
-Hialeah,33012,"USPS city, ZIP Code Business Patterns 2021"
-Hialeah,33013,"USPS city, ZIP Code Business Patterns 2021"
-Hialeah,33014,"USPS city, ZIP Code Business Patterns 2021"
-Hialeah,33015,"USPS city, ZIP Code Business Patterns 2021"
-Hialeah,33016,"USPS city, ZIP Code Business Patterns 2021"
-Hialeah,33018,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33030,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33031,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33032,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33033,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33034,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33035,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33039,"USPS city, ZIP Code Business Patterns 2021"
-Homestead,33090,"USPS city, ZIP Code Business Patterns 2021"
-Ives Estates,33179,area_features.csv area_name
-Kendall,33175,area_features.csv area_name
-Kendall,33176,area_features.csv area_name
-Kendall,33183,area_features.csv area_name
-Kendall,33186,area_features.csv area_name
-Key Biscayne,33149,"USPS city, ZIP Code Business Patterns 2021"
-Liberty City,33147,area_features.csv area_name
-Little Haiti,33150,area_features.csv area_name
-Little Havana,33135,area_features.csv area_name
-Miami,33101,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33111,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33116,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33122,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33124,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33125,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33126,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33127,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33128,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33129,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33130,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33131,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33132,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33133,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33134,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33135,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33136,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33137,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33138,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33142,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33143,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33144,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33145,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33146,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33147,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33150,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33155,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33156,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33157,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33158,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33161,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33162,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33165,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33166,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33167,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33168,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33169,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33170,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33172,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33173,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33174,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33175,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33176,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33177,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33178,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33179,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33180,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33181,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33182,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33183,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33184,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33185,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33186,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33187,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33189,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33190,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33193,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33194,"USPS city, ZIP Code Business Patterns 2021"
-Miami,33196,"USPS city, ZIP Code Business Patterns 2021"
-Miami Beach,33109,"USPS city, ZIP Code Business Patterns 2021"
-Miami Beach,33139,area_features.csv area_name
-Miami Beach,33140,"USPS city, ZIP Code Business Patterns 2021"
-Miami Beach,33141,"USPS city, ZIP Code Business Patterns 2021"
-Miami Beach,33154,"USPS city, ZIP Code Business Patterns 2021"
-Miami Gardens,33056,"USPS city, ZIP Code Business Patterns 2021"
-Mid-Beach,33140,area_features.csv area_name
-Midtown,33138,area_features.csv area_name
-North Miami,33161,area_features.csv area_name
-North Miami,33168,area_features.csv area_name
-North Miami,33181,area_features.csv area_name
-North Miami Beach,33160,"USPS city, ZIP Code Business Patterns 2021"
-North Miami Beach,33162,area_features.csv area_name
-Opa Locka,33054,"USPS city, ZIP Code Business Patterns 2021"
-Opa Locka,33055,"USPS city, ZIP Code Business Patterns 2021"
-Palmetto Bay,33157,area_features.csv area_name
-Palmetto Bay,33158,area_features.csv area_name
-Pinecrest,33156,area_features.csv area_name
-Riverside,33125,area_features.csv area_name
-South Beach,33131,area_features.csv area_name
-South Kendall,33177,area_features.csv area_name
-Sunset,33173,area_features.csv area_name
-Sweetwater,33184,area_features.csv area_name
-West Kendall,33185,area_features.csv area_name
-West Kendall,33187,area_features.csv area_name
-West Kendall,33193,area_features.csv area_name
-West Kendall,33196,area_features.csv area_name
-West Miami,33155,area_features.csv area_name
-Westchester,33165,area_features.csv area_name
-Westchester,33174,area_features.csv area_name
-Wynwood,33127,area_features.csv area_name
+alias,zip,match,source
+Allapattah,33125,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Allapattah,33142,primary,area_features.csv area_name
+Aventura,33160,primary,area_features.csv area_name
+Aventura,33180,primary,area_features.csv area_name
+Bal Harbour,33154,primary,area_features.csv area_name
+Bay Harbor Islands,33154,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Biscayne Gardens,33167,primary,area_features.csv area_name
+Biscayne North,33141,primary,area_features.csv area_name
+Biscayne Park,33161,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Brickell,33129,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Brickell,33130,primary,area_features.csv area_name
+Brickell,33131,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Brickell Hammock,33129,primary,area_features.csv area_name
+Brickell Key,33131,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Brownsville,33142,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Brownsville,33147,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Civic Center,33125,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coconut Grove,33133,primary,area_features.csv area_name
+Coral Gables,33114,primary,"USPS city, ZIP Code Business Patterns 2021"
+Coral Gables,33133,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables,33134,primary,area_features.csv area_name
+Coral Gables,33135,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables,33143,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables,33146,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables,33155,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables,33156,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables,33157,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables,33158,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Gables/U.M.,33146,primary,area_features.csv area_name
+Coral Terrace,33144,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Terrace,33155,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Coral Way,33145,primary,area_features.csv area_name
+Country Club,33014,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Country Club,33015,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Country Walk,33186,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Country Walk,33196,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Cutler Bay,33157,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Cutler Bay,33189,primary,area_features.csv area_name
+Cutler Bay,33190,primary,area_features.csv area_name
+Design District,33137,primary,area_features.csv area_name
+Doral,33122,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Doral,33126,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Doral,33166,primary,area_features.csv area_name
+Doral,33172,primary,area_features.csv area_name
+Doral,33178,primary,area_features.csv area_name
+Doral,33182,primary,area_features.csv area_name
+Doral,33194,primary,area_features.csv area_name
+Downtown,33128,primary,area_features.csv area_name
+Downtown Miami,33128,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Downtown Miami,33130,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Downtown Miami,33131,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Downtown Miami,33132,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Downtown Miami,33136,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+East Little Havana,33128,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+East Little Havana,33130,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Edgewater,33132,primary,area_features.csv area_name
+Edgewater,33137,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+El Portal,33138,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+El Portal,33150,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Everglades area,33034,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Fisher Island,33109,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Flagami,33126,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Flagami,33134,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Florida City,33034,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Florida City,33035,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Fountainebleau,33126,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Fountainebleau,33144,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Fountainebleau,33172,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Fountainebleau,33174,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Gladeview,33147,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Gladeview,33150,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Glenvar Heights,33143,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Glenvar Heights,33155,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Golden Beach,33160,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Golden Glades,33054,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Golden Glades,33161,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Golden Glades,33162,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Golden Glades,33167,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Golden Glades,33168,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Golden Glades,33169,primary,area_features.csv area_name
+Golden Glades,33181,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Goulds,33032,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Goulds,33170,primary,area_features.csv area_name
+Goulds,33177,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Goulds,33189,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Goulds,33190,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Health District,33136,primary,area_features.csv area_name
+Hialeah,33010,primary,"USPS city, ZIP Code Business Patterns 2021"
+Hialeah,33012,primary,"USPS city, ZIP Code Business Patterns 2021"
+Hialeah,33013,primary,"USPS city, ZIP Code Business Patterns 2021"
+Hialeah,33014,primary,"USPS city, ZIP Code Business Patterns 2021"
+Hialeah,33015,primary,"USPS city, ZIP Code Business Patterns 2021"
+Hialeah,33016,primary,"USPS city, ZIP Code Business Patterns 2021"
+Hialeah,33018,primary,"USPS city, ZIP Code Business Patterns 2021"
+Hialeah,33142,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Hialeah,33147,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Hialeah Gardens,33016,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Hialeah Gardens,33018,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Hialeah Gardens,33178,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Homestead,33030,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead,33031,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead,33032,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead,33033,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead,33034,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead,33035,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead,33039,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead,33090,primary,"USPS city, ZIP Code Business Patterns 2021"
+Homestead Base,33032,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Homestead Base,33033,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Homestead Base,33039,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Homestead agricultural area,33031,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Indian Creek,33154,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Ives Estates,33179,primary,area_features.csv area_name
+Kendale Lakes,33175,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendale Lakes,33183,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendale Lakes,33186,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendale Lakes,33193,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendall,33143,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendall,33156,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendall,33157,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendall,33173,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendall,33175,primary,area_features.csv area_name
+Kendall,33176,primary,area_features.csv area_name
+Kendall,33183,primary,area_features.csv area_name
+Kendall,33186,primary,area_features.csv area_name
+Kendall West,33185,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendall West,33193,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Kendall West,33196,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Key Biscayne,33149,primary,"USPS city, ZIP Code Business Patterns 2021"
+Leisure City,33032,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Leisure City,33033,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Liberty City,33147,primary,area_features.csv area_name
+Little Haiti,33127,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Little Haiti,33138,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Little Haiti,33150,primary,area_features.csv area_name
+Little Havana,33125,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Little Havana,33135,primary,area_features.csv area_name
+Medley,33018,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Medley,33166,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Medley,33178,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami,33101,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33109,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami,33111,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33116,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33122,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33124,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33125,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33126,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33127,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33128,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33129,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33130,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33131,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33132,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33133,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33134,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33135,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33136,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33137,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33138,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33139,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami,33142,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33143,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33144,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33145,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33146,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33147,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33149,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami,33150,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33155,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33156,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33157,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33158,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33161,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33162,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33165,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33166,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33167,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33168,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33169,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33170,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33172,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33173,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33174,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33175,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33176,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33177,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33178,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33179,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33180,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33181,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33182,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33183,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33184,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33185,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33186,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33187,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33189,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33190,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33193,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33194,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami,33196,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami Beach,33109,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami Beach,33132,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Beach,33139,primary,area_features.csv area_name
+Miami Beach,33140,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami Beach,33141,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami Beach,33154,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami Gardens,33014,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Gardens,33054,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Gardens,33055,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Gardens,33056,primary,"USPS city, ZIP Code Business Patterns 2021"
+Miami Gardens,33169,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Gardens,33179,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami International Airport,33122,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami International Airport,33126,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Lakes,33014,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Lakes,33015,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Lakes,33016,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Lakes,33018,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami River,33128,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Shores,33138,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Shores,33141,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Shores,33150,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Shores,33154,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Shores,33161,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Shores,33168,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Springs,33142,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Miami Springs,33166,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Mid-Beach,33140,primary,area_features.csv area_name
+Midtown,33138,primary,area_features.csv area_name
+Model City,33127,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Naranja,33032,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Bay Village,33141,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Beach,33141,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Miami,33160,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Miami,33161,primary,area_features.csv area_name
+North Miami,33162,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Miami,33167,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Miami,33168,primary,area_features.csv area_name
+North Miami,33181,primary,area_features.csv area_name
+North Miami Beach,33160,primary,"USPS city, ZIP Code Business Patterns 2021"
+North Miami Beach,33162,primary,area_features.csv area_name
+North Miami Beach,33169,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Miami Beach,33179,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+North Miami Beach,33181,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Ojus,33160,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Ojus,33179,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Ojus,33180,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Olympia Heights,33143,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Olympia Heights,33155,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Olympia Heights,33165,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Olympia Heights,33173,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Omni,33132,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Opa Locka,33054,primary,"USPS city, ZIP Code Business Patterns 2021"
+Opa Locka,33055,primary,"USPS city, ZIP Code Business Patterns 2021"
+Opa-locka,33013,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Opa-locka,33014,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Opa-locka,33054,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Opa-locka,33167,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Overtown,33127,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Overtown,33136,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Palm Springs North,33015,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Palmetto Bay,33157,primary,area_features.csv area_name
+Palmetto Bay,33158,primary,area_features.csv area_name
+Palmetto Bay,33176,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Palmetto Estates,33157,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Park West,33132,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Pinecrest,33143,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Pinecrest,33156,primary,area_features.csv area_name
+Pinewood,33147,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Pinewood,33150,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Pinewood,33167,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Pinewood,33168,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Princeton,33032,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Princeton,33170,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Princeton,33190,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Redland,33031,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Richmond Heights,33157,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Richmond Heights,33176,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Richmond Heights,33186,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Richmond West,33177,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Richmond West,33187,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Riverside,33125,primary,area_features.csv area_name
+Shenandoah,33129,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Shenandoah,33135,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Shenandoah,33145,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Silver Bluff,33133,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Silver Bluff,33145,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+South Beach,33131,primary,area_features.csv area_name
+South Beach,33139,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+South Kendall,33177,primary,area_features.csv area_name
+South Miami,33143,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+South Miami,33155,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+South Miami,33156,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+South Miami Heights,33157,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+South Miami Heights,33177,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+South Miami Heights,33189,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Sunny Isles Beach,33160,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Sunset,33165,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Sunset,33173,primary,area_features.csv area_name
+Sunset,33183,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Surfside,33154,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Sweetwater,33172,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Sweetwater,33174,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Sweetwater,33178,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Sweetwater,33184,primary,area_features.csv area_name
+Tamiami,33175,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Tamiami,33178,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Tamiami,33182,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Tamiami,33184,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+The Crossings,33186,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+The Hammocks,33186,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+The Hammocks,33196,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+The Roads,33129,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Three Lakes,33177,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Three Lakes,33186,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Unincorporated Miami-Dade,33194,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+University of Miami area,33146,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Upper Eastside,33137,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Upper Eastside,33138,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Virginia Gardens,33122,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Virginia Gardens,33166,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Virginia Key,33149,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+West Brickell,33130,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+West Kendall,33185,primary,area_features.csv area_name
+West Kendall,33187,primary,area_features.csv area_name
+West Kendall,33193,primary,area_features.csv area_name
+West Kendall,33196,primary,area_features.csv area_name
+West Little River,33147,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+West Little River,33150,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+West Miami,33134,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+West Miami,33144,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+West Miami,33155,primary,area_features.csv area_name
+West Miami-Dade,33194,primary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+West Perrine,33157,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westchester,33144,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westchester,33155,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westchester,33165,primary,area_features.csv area_name
+Westchester,33174,primary,area_features.csv area_name
+Westchester,33175,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westview,33013,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westview,33054,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westview,33147,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westview,33167,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westwood Lakes,33165,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Westwood Lakes,33175,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)
+Wynwood,33127,primary,area_features.csv area_name
+Wynwood,33137,secondary,Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)

@@ -92,12 +92,29 @@ Each open choice was tested with and without the change (`experiments/feature_ca
 | Starter data | Everything in the repo's initial commit (data, test profiles, fixtures) is yours. Your public reference repo is not treated as the complete source, so columns it doesn't produce (e.g. `co_living_friendly`) are kept as provided. |
 | P4 labels | Your expected answers are left unchanged and P4 is reported as a known miss; editing them to fit the engine would be circular. |
 
+## Joana's new data (November 4)
+
+Joana's branch adds ZIP names, GTFS transit service and rent benchmarks. Each was tested with the same rule (`experiments/feature_candidates/joana_decisions.py`):
+
+| Data | Result | Decision |
+|---|---|---|
+| **Area names** (USPS + Census ZCTA-to-Place) | Rankings unchanged | **Adopted.** Results gain `neighborhood` and `other_areas`; `area_name` is unchanged. All 24 "ZCTA5 xxxxx" ZIPs are now named, and `near` understands Brickell Key, Overtown, Florida City, Redland and others. |
+| **Transit service** (GTFS stops, routes, departures, headways) | As the transit score: MRR 0.72 → 0.44–0.62, with P5 worse in every variant | **Shown, not ranked.** Each result gains `transit_service` (e.g. Brickell: 28 routes, Metrorail and Metromover, bus every 16 min). |
+| **HUD rent benchmarks** by unit size | MRR 0.80, but P@3 0.53 → 0.33 and P4 fails; eligible ZIPs drop from 65 to 9 for P4 | **Not adopted; needs your input** (question 5) |
+| **Zillow rent, August 2026** | Real values for only 29 of 80 ZIPs; the cleaned file fills the other 51 with the median | **Not usable** for the budget filter, which never uses estimated rents |
+
+Two data-quality points:
+
+- The starter label for **33131 is "South Beach"**, but 33131 is Brickell / Brickell Key (South Beach is 33139). 28 ZIPs differ between the starter labels and the sourced names.
+- **Our rents look out of date.** The engine filters on the ACS 2018–22 median gross rent. Downtown is $1,191 there, versus a HUD 1-bedroom benchmark of $1,750 and an August 2026 Zillow rent of $2,799. Some recommendations may be unaffordable in practice.
+
 ## Questions for you
 
 1. **Test profiles:** how did you choose the expected ZIPs (local knowledge, data, or both)? Could you write more, including suburban and conflicting-priority cases, or should we write a held-out set that you review? Each tag is currently tested by only 1–3 profiles.
 2. **P4 (quiet + pets):** what did "quiet" mean when you chose Coconut Grove, Coral Gables and Pinecrest: low noise, or settled residential with greenery? With noise data they rank 11th, 31st and 14th, behind quieter outer ZIPs.
 3. **`co_living_friendly`:** how did you build it? It ranks your three anchor ZIPs highest (Wynwood 0.92, Brickell 0.90, Downtown 0.88), and 18 ZIPs share exactly 0.55 or 0.15. P3 passes even without it, so it isn't inflating results, but we'd like to document its source. Same question for `single_family_friendly` (unused, because of the familial-status risk).
 4. Is a Streamlit demo expected for the final presentation?
+5. **Rent basis:** the budget filter uses ACS 2018–22 median rent, which is far below 2026 rents. Should we switch to HUD benchmarks by unit size? The profiles' budgets seem to assume the older rents: P4 would have only 9 affordable ZIPs left.
 
 ## Run it
 
