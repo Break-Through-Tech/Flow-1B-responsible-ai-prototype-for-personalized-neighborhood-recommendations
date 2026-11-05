@@ -55,6 +55,42 @@ def data_dir(tmp_path):
         ["zip", "area_name"],
         [{"zip": row["zip"], "area_name": f"Area {row['zip']}"} for row in areas],
     )
+    # The engine's default (census) feature set also needs geography and measurements.
+    write(
+        "zcta_geography.csv",
+        ["zip", "land_sqmi", "lat", "lon", "usps_city"],
+        [
+            {"zip": z, "land_sqmi": 1, "lat": 25.7 + i / 10, "lon": -80.2, "usps_city": "Miami"}
+            for i, z in enumerate(("00001", "00002", "00003"))
+        ],
+    )
+    write(
+        "neighborhood_aliases.csv",
+        ["alias", "zip", "match", "source"],
+        [{"alias": "Test Town", "zip": "00001", "match": "primary", "source": "test"}],
+    )
+    write(
+        "census_features.csv",
+        [
+            "zip",
+            "workers",
+            "transit_commuters",
+            "walk_commuters",
+            "food_drink_establishments",
+            "noise_share_ge_55db",
+        ],
+        [
+            {
+                "zip": z,
+                "workers": 100,
+                "transit_commuters": t,
+                "walk_commuters": 5,
+                "food_drink_establishments": 10,
+                "noise_share_ge_55db": 0.1,
+            }
+            for z, t in (("00001", 20), ("00002", 30), ("00003", 30))
+        ],
+    )
     write(
         "crowd_text_snippets.csv",
         ["snippet_id", "zip", "source", "theme", "text"],
@@ -234,7 +270,13 @@ def test_stdio_rejects_coercion_demographics_and_unknown_arguments_then_recovers
                 {"tenant_score": 0.9},
                 {"screening_criteria": "hidden"},
                 {"housing_preference": "house"},
-                {"weights": {"transit": 3}},
+                {"weights": {"transit": 4}},
+                {"weights": {"transit": "3"}},
+                {"weights": {"social": 2}},
+                {"weights": ["transit"]},
+                {"near": "Test Town"},
+                {"near": ["a", "b", "c", "d"]},
+                {"near": ["Nowhere"]},
             ]
             for changes in invalid:
                 err = payload(
@@ -250,6 +292,29 @@ def test_stdio_rejects_coercion_demographics_and_unknown_arguments_then_recovers
             unknown = payload(await client.call_tool("not_a_tool", {}), is_error=True)
             assert "unknown_tool" in unknown
             assert payload(await client.call_tool("recommend", request()))["status"] == "ok"
+
+    asyncio.run(scenario())
+
+
+def test_stdio_priorities_and_near_match_engine_on_repository_data(tmp_path):
+    async def scenario():
+        async with session(DATA, tmp_path) as client:
+            engine = Recommender(DATA)
+            for extra in (
+                {"weights": {"quiet": 3}},
+                {"near": ["Coconut Grove"]},
+                {"weights": {"transit": 2, "near": 3}, "near": ["Brickell", "33150"]},
+                {"weights": None, "near": None},
+            ):
+                args = request(budget_max=2500, tags=["transit", "quiet"]) | extra
+                actual = payload(await client.call_tool("recommend", args))
+                given = {key: value for key, value in args.items() if value is not None}
+                assert actual == engine.recommend(given), extra
+            near = payload(
+                await client.call_tool("recommend", request(budget_max=2500, near=["Brickell"]))
+            )
+            assert near["applied_filters"]["near"]["Brickell"]
+            assert all("distance_miles" in row for row in near["results"])
 
     asyncio.run(scenario())
 

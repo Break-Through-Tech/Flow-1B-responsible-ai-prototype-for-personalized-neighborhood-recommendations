@@ -21,7 +21,7 @@ def with_snippets(tmp_path, rows):
         ["snippet_id", "zip", "source", "theme", "text"],
         [dict(zip(("snippet_id", "zip", "source", "theme", "text"), row)) for row in rows],
     )
-    return Recommender(tmp_path)
+    return Recommender(tmp_path, feature_set="provided")
 
 
 def test_returns_evidence_counts_and_grounding_rules(tmp_path):
@@ -63,9 +63,6 @@ def test_returned_evidence_cannot_mutate_engine(tmp_path):
     engine = with_snippets(tmp_path, [("T1", "00001", "demo", "social", "Lively.")])
     crowd_themes(engine, "00001")["evidence"][0]["text"] = "changed"
     assert crowd_themes(engine, "00001")["evidence"][0]["text"] == "Lively."
-
-
-mcp = pytest.importorskip("mcp")
 
 
 def test_server_registers_read_only_tool_with_schema():

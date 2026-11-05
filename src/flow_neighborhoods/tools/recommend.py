@@ -28,14 +28,23 @@ def recommend(
     housing_preference: str,
     tags: list[str],
     k: int = 3,
+    weights: dict[str, int] | None = None,
+    near: list[str] | None = None,
 ) -> Recommendation:
-    """Return the engine's result unchanged, including warnings and empty states."""
-    return engine.recommend(
-        {
-            "budget_max": budget_max,
-            "household": household,
-            "housing_preference": housing_preference,
-            "tags": tags,
-            "k": k,
-        }
-    )
+    """Return the engine's result unchanged, including warnings and empty states.
+
+    weights (priority 1-3 per requested tag, or "near") and near (up to 3 neighborhood
+    names or ZIPs) are optional; omitted means equal priorities and no location.
+    """
+    payload = {
+        "budget_max": budget_max,
+        "household": household,
+        "housing_preference": housing_preference,
+        "tags": tags,
+        "k": k,
+    }
+    if weights is not None:
+        payload["weights"] = weights
+    if near is not None:
+        payload["near"] = near
+    return engine.recommend(payload)
