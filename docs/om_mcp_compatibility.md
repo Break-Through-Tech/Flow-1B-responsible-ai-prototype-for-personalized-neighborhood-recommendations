@@ -44,7 +44,8 @@ belong inside the factory; see `docs/mcp_server.md` for the updated example.
   The protocol tests exercise all five profiles, k=3/5 and mean/cosine scorers;
   results, warnings and Census metadata equal direct engine output.
 
-The separate Census engine branch is tested, not merged. Its `weights` and `near`
-inputs remain outside the published MCP contract; they are rejected explicitly.
+Update (November 5): the Census engine branch has merged (PR #17), and `recommend`
+now publishes its `weights` and `near` inputs. Test fixtures include the census and
+geography files the default feature set needs.
 The three-tool server does not implement `schema` or `area_stats`, and the ethics
 endpoint remains a policy description rather than a natural-language refusal gate.

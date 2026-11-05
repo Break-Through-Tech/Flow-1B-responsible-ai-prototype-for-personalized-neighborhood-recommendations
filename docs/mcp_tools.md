@@ -68,12 +68,18 @@ Example arguments:
   "household": "with_co_leaser",
   "housing_preference": "own_apartment",
   "tags": ["transit", "walkable"],
-  "k": 3
+  "k": 3,
+  "weights": {"transit": 3},
+  "near": ["Brickell"]
 }
 ```
 
 `budget_max`, `household`, `housing_preference`, and `tags` are required. `k` is
-optional and defaults to 3, with a range of 1-5. Budget is positive, finite, total
+optional and defaults to 3, with a range of 1-5. `weights` is optional: a priority
+of 1 (nice to have), 2 (important) or 3 (top priority) per requested tag, or for
+`near`; unweighted tags count as 1. `near` is optional: up to 3 neighborhood names
+or ZIPs, which add a closeness score (unknown names are rejected with a suggestion;
+names covering more than 10 ZIPs are rejected as too broad). Budget is positive, finite, total
 household monthly USD; it is never automatically divided or multiplied for
 co-leasers. Housing and household values are exactly those in the example or
 `co_living` and `alone`, respectively. Supported tags are `transit`, `social`,
@@ -164,10 +170,10 @@ At implementation time, main is `fdd2c9a`. Om's pushed recommender branch
 (`73f38a1`) adds Census features, priorities (`weights`) and neighborhood proximity
 (`near`); Joana's branch (`405e12c`) restructures data and adds updated sources.
 The newer MCP-only branch `om-mcp-crowd-themes` (`deeeb53`) is integrated here.
-The separate `Om` engine branch and Joana's data branch are not merged. The adapter uses the existing
-`Recommender(...).recommend(payload)` interface, so new internal scoring can be
-consumed after its merge without duplicating ranking logic. Expanding the public
-tool schema for `weights` and `near` is a separate, explicit contract change.
+The `Om` engine branch merged afterwards (PR #17); `weights` and `near` are now part
+of the published `recommend` schema (November 5). Joana's data branch is not merged. The
+adapter uses the existing `Recommender(...).recommend(payload)` interface, so scoring
+changes are consumed without duplicating ranking logic.
 If data files move, configure a directory containing the engine's three required
 CSV names, or update the engine's loader in a coordinated change. Do not restore
 eligibility with imputed rent from a new table without reviewing its provenance.

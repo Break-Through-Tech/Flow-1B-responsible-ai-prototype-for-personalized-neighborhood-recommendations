@@ -34,6 +34,8 @@ READ_ONLY = ToolAnnotations(
 )
 Budget = Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]
 Count = Annotated[int, Field(strict=True, ge=1, le=5)]
+Priority = Annotated[int, Field(strict=True, ge=1, le=3)]
+Places = Annotated[list[StrictStr], Field(max_length=3)]
 
 
 class NeighborhoodServer(MCPServer):
@@ -58,7 +60,8 @@ class NeighborhoodServer(MCPServer):
             raise ToolError("invalid_arguments: Arguments must match the tool's input schema.")
         if name == "recommend":
             try:
-                Request.parse(arguments)
+                # Optional fields sent as null mean "not given", as in the tool signature.
+                Request.parse({key: value for key, value in arguments.items() if value is not None})
             except ValidationError as exc:
                 raise ToolError(f"invalid_arguments: {exc}") from exc
         return await super().call_tool(name, arguments, context)
@@ -117,14 +120,20 @@ def create_server(directory: str | Path | None = None, scorer: str = "mean") -> 
         housing_preference: Literal["own_apartment", "co_living"],
         tags: list[StrictStr],
         k: Count = 3,
+        weights: dict[StrictStr, Priority] | None = None,
+        near: Places | None = None,
     ) -> Recommendation:
         """Rank ZIPs with a hard total household monthly USD budget; never live listings.
 
-        Tags: transit, social, quiet, pet_friendly, walkable, co_living. Ranking is
-        performed by Python. Preserve warnings, demo labels and empty/clarification
-        states. The agent must refuse prohibited requests before calling this tool.
+        Tags: transit, social, quiet, pet_friendly, walkable, co_living. weights sets a
+        priority per requested tag (1 nice to have, 2 important, 3 top priority; "near"
+        may be weighted too). near takes up to 3 neighborhood names or ZIPs and scores
+        closeness. Ranking is performed by Python. Preserve warnings, demo labels and
+        empty/clarification states. The agent must refuse prohibited requests first.
         """
-        return run(recommend_logic, budget_max, household, housing_preference, tags, k)
+        return run(
+            recommend_logic, budget_max, household, housing_preference, tags, k, weights, near
+        )
 
     @app.tool(annotations=READ_ONLY, structured_output=True)
     def ethics() -> Ethics:
