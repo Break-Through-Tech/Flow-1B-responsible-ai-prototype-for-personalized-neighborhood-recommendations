@@ -4,6 +4,12 @@ version = "0.1.0"
 description = "Deterministic neighborhood recommendations over the team's prepared snapshot"
 requires-python = ">=3.11"
 
+[project.optional-dependencies]
+mcp = ["mcp>=2.2,<3"]
+
+[project.scripts]
+flow-neighborhoods-mcp = "flow_neighborhoods.mcp_server:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -12,7 +18,7 @@ build-backend = "hatchling.build"
 packages = ["src/flow_neighborhoods"]
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff"]
+dev = ["pytest>=8", "ruff", "mcp>=2.2,<3"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
