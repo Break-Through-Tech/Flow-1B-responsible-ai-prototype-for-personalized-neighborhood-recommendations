@@ -16,12 +16,16 @@ from pydantic import Field, StrictStr
 from .contracts import Request, ValidationError
 from .data import DataError
 from .engine import SCORERS, Recommender
+from .tools.area_stats import AreaStats
+from .tools.area_stats import area_stats as area_stats_logic
 from .tools.crowd_themes import CrowdThemes
 from .tools.crowd_themes import crowd_themes as crowd_themes_logic
 from .tools.ethics import Ethics
 from .tools.ethics import ethics as ethics_logic
 from .tools.recommend import Recommendation
 from .tools.recommend import recommend as recommend_logic
+from .tools.schema import Schema
+from .tools.schema import schema as schema_logic
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -82,6 +86,9 @@ def create_server(directory: str | Path | None = None, scorer: str = "mean") -> 
     def engine() -> Recommender:
         return Recommender(configured if configured is not None else data_dir(), scorer=scorer)
 
+    def files() -> Path:
+        return configured if configured is not None else data_dir()
+
     def run(logic, *args):
         try:
             return logic(engine(), *args)
@@ -127,6 +134,27 @@ def create_server(directory: str | Path | None = None, scorer: str = "mean") -> 
         enforce refusals before calling recommend. It does not classify chat messages.
         """
         return ethics_logic()
+
+    @app.tool(annotations=READ_ONLY, structured_output=True)
+    def schema() -> Schema:
+        """Describe the data files: each file's columns, a plain-English note per column,
+        row counts, and whether the data is real, derived, placeholder or synthetic.
+
+        No arguments. Describe only what is returned; a column with no note must not be
+        guessed at. For a ZIP's actual values use area_stats.
+        """
+        return run(schema_logic, files())
+
+    @app.tool(annotations=READ_ONLY, structured_output=True)
+    def area_stats(zip_code: str = "") -> AreaStats:
+        """Public statistics for one Miami-Dade ZIP, or a short list of every ZIP if blank.
+
+        zip_code: five-digit ZIP, e.g. "33127" (look up the ZIP for a neighborhood name
+        first), or blank for all ZIPs. Returns public Census-style figures plus separate
+        placeholder lifestyle scores. Follow the returned guidance; never present
+        lifestyle scores as facts.
+        """
+        return run(area_stats_logic, files(), zip_code)
 
     return app
 

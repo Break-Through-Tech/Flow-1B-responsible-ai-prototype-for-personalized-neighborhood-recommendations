@@ -6,7 +6,7 @@ The five tools the agent calls. Ranking and data stay in Python; the agent only 
 |---|---|---|
 | `crowd_themes` | Om | Done (this file) |
 | `recommend`, `ethics` | Daniel | Implemented; see [contracts and tests](mcp_tools.md) |
-| `schema`, `area_stats` | Azibator | To add |
+| `schema`, `area_stats` | Azibator | Implemented (`tools/schema.py`, `tools/area_stats.py`) |
 
 ## Run it
 

@@ -162,7 +162,13 @@ def test_stdio_discovery_and_all_repository_profiles(tmp_path, scorer):
         async with session(DATA, tmp_path, scorer) as client:
             discovery = await client.list_tools()
             tools = {tool.name: tool for tool in discovery.tools}
-            assert set(tools) == {"recommend", "ethics", "crowd_themes"}
+            assert set(tools) == {
+                "recommend",
+                "ethics",
+                "crowd_themes",
+                "schema",
+                "area_stats",
+            }
             assert tools["recommend"].input_schema["additionalProperties"] is False
             assert tools["ethics"].input_schema["properties"] == {}
             assert tools["recommend"].annotations.read_only_hint is True
