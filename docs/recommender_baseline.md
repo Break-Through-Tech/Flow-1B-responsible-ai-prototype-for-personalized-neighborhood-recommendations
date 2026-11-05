@@ -1,5 +1,7 @@
 # Recommendation baseline: October 11, 2026
 
+> **October 28 update:** requests now accept `weights` (priority 1-3 per tag) and `near` (up to 3 neighborhood names or ZIPs); `budget_max` is the household total (with a co-leaser it covers both people; a warning says so); results add `usps_city`; and `feature_set="census"`, now the default, ranks on measured transit, social, walkable and quiet (`--features provided` restores the starter scores). See [karla_review.md](karla_review.md) for the pipeline, results and open questions. Sections below describe the October 11 baseline.
+
 ## Implemented scope
 
 The `flow_neighborhoods` package implements the preference/budget behavior in #8, initial demo-theme lookup in #9, and a deterministic ranker for #11 (requested-feature mean by default; the original cosine baseline is kept for comparison). The evaluation runner supports Amelie's #12 scorecard. This is local implementation evidence; GitHub issue statuses have not been changed.
@@ -90,26 +92,65 @@ Budget filtering precedes scoring. Scores sort descending, then ZIP ascending fo
 
 Why the default changed: cosine divides by the length of the *whole* area vector, so strengths the user did not ask for lower the score. For a transit + walkable request, 33128 (transit 0.92, social 0.80, quiet 0.94) ranked 52nd because its social and quiet values are high, while 33150 (transit 1.00, social 0.45) ranked first. A user asking for transit should not be told an area is a worse fit because it also has nightlife.
 
-Data limits that no scoring rule can fix:
+## What the provided lifestyle features measure
 
-- `pet_friendly` is 0.6 for every ZIP. Requesting it shifts every score equally, so it cannot change the ranking. The response warns when a requested feature is constant across the snapshot, and when all eligible areas tie.
-- `walkable` is effectively binary: 3 ZIPs are 0 and the other 77 are about 1, so in practice transit + walkable ranks by transit alone.
-- `quiet` closely tracks the inverse of `social` (it is at least `1 - social/2` everywhere), so "quiet" here means "less social", not "suburban/residential".
+Checked against `miami_dade_public_features.csv` on October 14. Among ZIPs that have rent data, the five provided features reduce to ZIP population and rent:
+
+| Feature | What it is in `area_features.csv` |
+|---|---|
+| `quiet` | Exactly `1 - population / max_population / 2` for all 80 ZIPs |
+| `social` | Exactly `population / max_population`, except 9 urban-core ZIPs (Wynwood, Downtown, Brickell, South Beach, Edgewater, Health District, Design District, Midtown, Miami Beach) set to 0.80 |
+| `transit` | Mostly inverse rent (Pearson r = -0.80 with ACS median gross rent); 6 urban ZIPs set to 0.85 |
+| `walkable` | 0 only for the 3 ZIPs with no rent data, which are already excluded; about 1 for every eligible ZIP |
+| `pet_friendly` | 0.6 for every ZIP |
+
+ZIP population measures how big a ZIP is, not how urban it is. The largest ZIP (33012, Hialeah) is therefore the "most social" and "least quiet", and the hand-set 0.80 puts Brickell and Downtown *below* large suburbs. The response warns when a requested feature is constant across the snapshot, and when all eligible areas tie.
+
+## Density prototype: rejected and removed
+
+Removed from the runtime on October 21, 2026 with Om's approval. The original
+implementation remains in commit `6b5b030`; no commits were deleted or rewritten.
+The feature diagnosis above is preserved. Land area now lives in
+`data/zcta_geography.csv` (October 28), which replaced `data/zcta_land_area.csv`.
+
+The prototype assigned social and walkable the same density percentile, then
+assigned quiet one minus that percentile. This collapsed distinct preferences
+onto one measure: a social + quiet request gave every eligible ZIP a score of
+0.5. Residential density does not directly measure social activities, pedestrian
+access, or noise. The higher five-profile scores below do not justify adopting it.
+
+`feature_set` and `--features` are no longer supported. The runtime uses provided
+features with mean or cosine scoring. No replacement feature set is approved.
+See `feature_spec_proposal.md` for decisions required before implementation.
 
 ## Measured baseline
 
-Run date: October 11, 2026. Five supplied profiles, uniform feature weights, no fitting or tuning. Reports are written to `outputs/recommender_<scorer>.json` and include per-profile outputs, source/code/profile hashes, Git HEAD and working-tree status. Git HEAD alone does not identify uncommitted implementation; use the included code hashes too.
+Run dates: October 11 (provided features) and October 14 (density), 2026. Five supplied profiles, uniform feature weights, no fitting or tuning. Current reports are written to `outputs/recommender_<scorer>.json` and include per-profile outputs, source/code/profile hashes, Git HEAD and working-tree status. Git HEAD alone does not identify uncommitted implementation; use the included code hashes too.
 
-| Metric | cosine-v1 | mean-v1 |
-|---|---:|---:|
-| Mean Precision@3 | 0.1333 | 0.1333 |
-| Mean Precision@5 | 0.0800 | 0.1600 |
-| MRR over the full eligible ranking | 0.155 | 0.320 |
-| Budget pass rate among nonempty profiles | 100% | 100% |
-| Demo theme coverage @5 (macro average) | 12% | 20% |
-| Empty profiles | 0/5 | 0/5 |
+Density columns and the density profile table below are historical results of the rejected prototype, not supported runtime modes.
 
-Mean score is reported in each JSON file but is not comparable across scorers.
+| Metric | cosine, provided | mean, provided | cosine, density (rejected) | mean, density (rejected) |
+|---|---:|---:|---:|---:|
+| Mean Precision@3 | 0.133 | 0.133 | 0.133 | 0.467 |
+| Mean Precision@5 | 0.080 | 0.160 | 0.160 | 0.320 |
+| MRR over the full eligible ranking | 0.155 | 0.320 | 0.267 | 0.825 |
+| Budget pass rate among nonempty profiles | 100% | 100% | 100% | 100% |
+| Demo theme coverage @5 (macro average) | 12% | 20% | 20% | 44% |
+| Empty profiles | 0/5 | 0/5 | 0/5 | 0/5 |
+
+Historically, density features under cosine barely helped. The improvement under mean scoring does not establish that density represents the requested preferences.
+
+| Profile | mean + density top 3 | Expected ZIP ranks | P@3 |
+|---|---|---|---:|
+| P1: transit/walkable | 33128, 33135, 33130 | 33128: 1, 33130: 3, 33127: 14 | 0.67 |
+| P2: social/walkable | 33130, 33128, 33135 | 33130: 1, 33128: 2, 33127: 21 | 0.67 |
+| P3: co-living/transit | 33128, 33127, 33130 | 33128: 1, 33130: 3 | 0.67 |
+| P4: quiet/pet-friendly | 33034, 33031, 33035 | 33156: 8, 33134: 37, 33133: 41 | 0 |
+| P5: transit/social | 33128, 33135, 33131 | 33128: 1, 33130: 4 | 0.33 |
+
+Mean score is reported in each JSON file but is not comparable across scorers or feature sets.
+
+Provided features, cosine vs mean:
 
 | Profile | cosine top 3 | mean top 3 | Rank of each expected ZIP (cosine to mean) |
 |---|---|---|---|
@@ -123,10 +164,10 @@ The mean scorer moves expected ZIPs up in P1, P2, P3 and P5, but most stay just 
 
 Precision divides by requested k even for short lists. MRR uses the best-ranked expected ZIP across all eligible areas, so it shows improvement below the top-k cut-off. Label ceilings are included per profile because some profiles list fewer relevant ZIPs than k. Empty-result budget and theme metrics are undefined (`null`), and empty-profile counts are reported separately. Theme coverage means at least one provided topic matches a selected tag, not positive sentiment or authentic review coverage.
 
-Only the co-living profile retrieves labeled relevant ZIPs in its top 3. Relevance is still weak despite valid budget filtering. The switch to `mean-v1` is a correctness fix (unrequested features should not count against an area), not tuning; do not tune weights solely to these five fixtures. P5 mentions Brickell in its description, but its structured inputs provide no target-ZIP field; the engine does not read evaluation descriptions as user preferences.
+With provided features, only the co-living profile retrieves labeled relevant ZIPs in its top 3. The switch to `mean-v1` is a correctness fix (unrequested features should not count against an area), not tuning. The density result is strong evidence that the provided features were the main problem, but five team-written profiles that favor the urban core cannot show it generalizes; density naturally favors the urban core too. Do not tune weights solely to these five fixtures. P5 mentions Brickell in its description, but its structured inputs provide no target-ZIP field; the engine does not read evaluation descriptions as user preferences.
 
 ## Validation and next steps
 
 40 tests cover budget boundaries, missing/suppressed rents, hand-calculated mean and cosine values, unrequested-feature behavior, constant-feature warnings, zero vectors, stable ties, duplicate tags, invalid requests, housing-mode behavior, missing features, bad source schemas, evidence preservation, evaluation denominators, and all five profiles with the actual snapshot.
 
-Next, review false matches with Anna and the data owners, especially the constant `pet_friendly`, near-constant `walkable`, and `quiet` derived from `social`. Better features will move precision more than scoring changes. Validate `mean-v1` against cosine on separate development profiles. With Nadia, add evidence-preserving text preprocessing and polarity-aware extraction after agreeing a labeled evaluation set. With the MCP owners, finalize tool error mapping and implement the tool server. Keep the current baseline fixed for comparison.
+Next: agree independent, meaningful feature definitions with the advisor and data owners; agree with the team what `quiet` should mean (P4); propose a GTFS transit feature; get independently labeled development and held-out profiles before changing ranking further. With Nadia, add evidence-preserving text preprocessing and polarity-aware extraction after agreeing a labeled evaluation set. With the MCP owners, finalize tool error mapping and implement the tool server. Keep the current baseline fixed for comparison.

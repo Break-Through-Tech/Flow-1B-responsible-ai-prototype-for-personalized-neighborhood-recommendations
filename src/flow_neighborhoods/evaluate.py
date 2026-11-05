@@ -9,7 +9,7 @@ from pathlib import Path
 from statistics import mean
 
 from .contracts import Request
-from .engine import SCORERS, Recommender
+from .engine import FEATURE_SETS, SCORERS, Recommender
 
 
 def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
@@ -18,9 +18,8 @@ def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
     rows = []
     for profile in profiles:
         relevant = set(profile["expected_relevant_zips"])
-        payload = {
-            key: profile[key] for key in ("budget_max", "household", "housing_preference", "tags")
-        }
+        keys = ("budget_max", "household", "housing_preference", "tags", "weights", "near")
+        payload = {key: profile[key] for key in keys if key in profile}
         # Rank over every eligible area, not just the top k, so improvements
         # below the cut-off are still visible.
         ranking = [item["zip"] for item in engine.rank(Request.parse(payload))[0]]
@@ -42,7 +41,8 @@ def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
                     "relevant_ranks": dict(sorted(relevant_ranks.items())),
                     "mean_score": mean(item["score"] for item in results) if results else None,
                     "budget_pass": all(
-                        0 < item["median_rent_usd"] <= profile["budget_max"] for item in results
+                        0 < item["median_rent_usd"] <= response["applied_filters"]["budget_max"]
+                        for item in results
                     )
                     if results
                     else None,
@@ -74,15 +74,19 @@ def main():
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--profiles", type=Path, default=Path("eval/recommendation_profiles.json"))
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
-    parser.add_argument("--output", type=Path, help="default: outputs/recommender_<scorer>.json")
+    parser.add_argument("--features", choices=FEATURE_SETS, default="census")
+    parser.add_argument(
+        "--output", type=Path, help="default: outputs/recommender_<scorer>_<features>.json"
+    )
     args = parser.parse_args()
-    args.output = args.output or Path(f"outputs/recommender_{args.scorer}.json")
-    engine = Recommender(args.data_dir, scorer=args.scorer)
+    args.output = args.output or Path(f"outputs/recommender_{args.scorer}_{args.features}.json")
+    engine = Recommender(args.data_dir, scorer=args.scorer, feature_set=args.features)
     report = evaluate(engine, json.loads(args.profiles.read_text(encoding="utf-8")))
     code_paths = sorted(Path(__file__).parent.glob("*.py"))
     report["metadata"] = {
         "generated_at": datetime.now(UTC).isoformat(),
         "model_version": engine.model_version,
+        "feature_set": engine.feature_set,
         "data_sha256": engine.data_version,
         "code_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in code_paths},
         "profiles_sha256": hashlib.sha256(args.profiles.read_bytes()).hexdigest(),

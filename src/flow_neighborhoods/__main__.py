@@ -5,7 +5,7 @@ import json
 
 from .contracts import ValidationError
 from .data import DataError
-from .engine import SCORERS, Recommender
+from .engine import FEATURE_SETS, SCORERS, Recommender
 
 
 def main():
@@ -19,15 +19,29 @@ def main():
     parser.add_argument("--tags", nargs="*", default=[])
     parser.add_argument("--k", type=int, default=3)
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
+    parser.add_argument("--features", choices=FEATURE_SETS, default="census")
+    parser.add_argument(
+        "--weight", action="append", default=[], metavar="TAG=1|2|3", help="priority of a tag"
+    )
+    parser.add_argument("--near", action="append", default=[], metavar="NEIGHBORHOOD")
     args = parser.parse_args()
     try:
-        result = Recommender(args.data_dir, scorer=args.scorer).recommend(
+        weights = {}
+        for item in args.weight:
+            tag, _, level = item.partition("=")
+            if not level.isdigit():
+                raise ValidationError(f"--weight expects TAG=1|2|3, got {item!r}.")
+            weights[tag] = int(level)
+        engine = Recommender(args.data_dir, scorer=args.scorer, feature_set=args.features)
+        result = engine.recommend(
             {
                 "budget_max": args.budget,
                 "household": args.household,
                 "housing_preference": args.housing,
                 "tags": args.tags,
                 "k": args.k,
+                "weights": weights,
+                "near": args.near,
             }
         )
     except (ValidationError, DataError, OSError) as exc:
