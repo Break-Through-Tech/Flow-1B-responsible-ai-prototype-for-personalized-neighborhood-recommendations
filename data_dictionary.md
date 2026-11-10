@@ -72,6 +72,19 @@ HUD Small Area Fair Market Rents per ZIP and unit size, from Joana's `data/raw/n
 | efficiency, one_bedroom, two_bedroom, three_bedroom, four_bedroom | Monthly rent benchmark, USD |
 | source | Provenance |
 
+## co_living_listings.csv
+
+Hand-curated co-living properties, following the advisor's rule: a property qualifies when it explicitly offers a private bedroom for rent in a shared apartment. Each property is counted once across listing sites. With the census feature set, co-living requests only consider ZIPs with a listed property, and the budget is compared with the lowest per-bedroom "from" price. Prices change and may reflect specials; record `observed` and `sources` when updating.
+
+| Column | Description |
+|--------|-------------|
+| property | Property name (unique) |
+| zip | 5-digit ZIP |
+| per_bedroom_rent_from, per_bedroom_rent_to | Monthly per-bedroom rent range, USD |
+| observed | Date the prices were checked |
+| sources | Listing sites or pages used |
+| notes | Fees, specials, unit types |
+
 ## zip_area_names.csv
 
 Display names per ZCTA, from Joana's `data/raw/new/area-name.csv` (USPS City State Product; Census 2020 ZCTA-to-Place relationship). Shown as `neighborhood` / `other_areas` in results; `area_name` (starter label) is unchanged. Covers all 80 snapshot ZIPs, including the 24 that the starter data labels "ZCTA5 xxxxx".

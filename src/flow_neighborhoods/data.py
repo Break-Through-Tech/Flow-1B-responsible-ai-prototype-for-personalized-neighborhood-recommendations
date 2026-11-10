@@ -198,6 +198,44 @@ def load_rents(directory: Path) -> tuple[dict[str, dict[str, float | None]], dic
     return rents, {path.name: digest(path)}
 
 
+def load_co_living(directory: Path) -> tuple[dict[str, list[dict]], dict]:
+    """Co-living properties (private bedroom in a shared apartment), one row per property.
+
+    Optional: returns empty when the curated file is absent.
+    """
+    path = directory / "co_living_listings.csv"
+    if not path.exists():
+        return {}, {}
+    required = {
+        "property",
+        "zip",
+        "per_bedroom_rent_from",
+        "per_bedroom_rent_to",
+        "observed",
+        "sources",
+    }
+    listings, seen = {}, set()
+    for row in read_rows(path, required):
+        low, high = number(row["per_bedroom_rent_from"]), number(row["per_bedroom_rent_to"])
+        name = normalize_name(row["property"])
+        if not name or name in seen or not row["sources"].strip():
+            raise DataError("co_living_listings.csv: properties must be named, unique and sourced.")
+        if low is None or low <= 0 or (high is not None and high < low):
+            raise DataError(
+                f"co_living_listings.csv: invalid per-bedroom rent for {row['property']}."
+            )
+        seen.add(name)
+        listings.setdefault(row["zip"], []).append(
+            {
+                "property": row["property"].strip(),
+                "per_bedroom_rent_from": low,
+                "per_bedroom_rent_to": high,
+                "observed": row["observed"].strip(),
+            }
+        )
+    return listings, {path.name: digest(path)}
+
+
 def apply_census(directory: Path, areas: list[dict], geography: dict) -> dict:
     """Replace the placeholder lifestyle scores with measured ones (percentiles).
 

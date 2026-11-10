@@ -278,7 +278,10 @@ def check_repository_profiles(engine, profiles):
     for row in report["profiles"]:
         response = row["response"]
         assert row["budget_pass"] is True
-        assert len({item["zip"] for item in response["results"]}) == row["k"]
+        returned = len({item["zip"] for item in response["results"]})
+        assert returned == response["returned_count"] <= row["k"]
+        if returned < row["k"]:  # a short list stays short and says so (e.g. co-living)
+            assert any("Fewer eligible ZIPs" in text for text in response["warnings"])
         assert response["eligible_count"] + sum(response["excluded_counts"].values()) == len(
             engine.areas
         )
@@ -675,3 +678,69 @@ def test_rent_basis_options(tmp_path):
         Recommender(tmp_path, feature_set="provided", rent_basis="hud")
     with pytest.raises(ValueError):
         Recommender(tmp_path, feature_set="provided", rent_basis="zillow")
+
+
+def listings(tmp_path, rows):
+    write_csv(
+        tmp_path / "co_living_listings.csv",
+        ["property", "zip", "per_bedroom_rent_from", "per_bedroom_rent_to", "observed", "sources"],
+        [
+            dict(
+                zip(("property", "zip", "per_bedroom_rent_from", "per_bedroom_rent_to"), r),
+                observed="2026-11-09",
+                sources="test",
+            )
+            for r in rows
+        ],
+    )
+
+
+def coliving_request(budget):
+    return request(budget_max=budget, housing_preference="co_living", tags=["co_living"])
+
+
+def test_co_living_uses_listed_properties_and_per_bedroom_rent(tmp_path):
+    census_snapshot(
+        tmp_path,
+        [area("00001", 1500), area("00002", 1500), area("00003", 1500)],
+        {z: (10, 0.1, 10, 10, 100) for z in ("00001", "00002", "00003")},
+    )
+    listings(
+        tmp_path,
+        [("Flow", "00001", 1750, 2200), ("i5", "00001", 1299, 1626), ("Other", "00002", 1900, "")],
+    )
+    engine = Recommender(tmp_path)
+    mid = engine.recommend(coliving_request(1500))
+    assert [r["zip"] for r in mid["results"]] == ["00001"]
+    assert mid["results"][0]["rent_usd"] == 1299
+    assert [x["property"] for x in mid["results"][0]["co_living_listings"]] == ["i5"]
+    assert mid["excluded_counts"] == {"missing_rent": 1, "over_budget": 1, "missing_features": 0}
+    assert "co-living listings" in mid["results"][0]["rent_basis"]
+    assert any("listed private bedroom" in text for text in mid["warnings"])
+    high = engine.recommend(coliving_request(2000))
+    assert [r["zip"] for r in high["results"]] == ["00001", "00002"]
+    assert engine.recommend(coliving_request(1200))["status"] == "no_matches"
+    own = engine.recommend(request(budget_max=1500))
+    assert "co_living_listings" not in own["results"][0]
+
+
+def test_co_living_without_listings_file_uses_studio_stand_in(tmp_path):
+    census_snapshot(tmp_path, [area("00001", 1500)], {"00001": (10, 0.1, 10, 10, 100)})
+    result = Recommender(tmp_path).recommend(coliving_request(1500))
+    assert [r["zip"] for r in result["results"]] == ["00001"]
+    assert any("studio rent stands in" in text for text in result["warnings"])
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [("Flow", "00001", 1750, 2200), ("flow", "00001", 1800, 1900)],
+        [("Flow", "00001", 0, "")],
+        [("Flow", "00001", 2000, 1500)],
+    ],
+)
+def test_bad_co_living_listings_fail_explicitly(tmp_path, rows):
+    census_snapshot(tmp_path, [area("00001", 1500)], {"00001": (10, 0.1, 10, 10, 100)})
+    listings(tmp_path, rows)
+    with pytest.raises(DataError):
+        Recommender(tmp_path)

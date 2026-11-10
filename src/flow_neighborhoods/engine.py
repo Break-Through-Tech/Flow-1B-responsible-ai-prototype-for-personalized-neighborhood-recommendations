@@ -7,7 +7,15 @@ import re
 from pathlib import Path
 
 from .contracts import ALL_FEATURES, OPTIONAL_FEATURES, Request, ValidationError
-from .data import DataError, apply_census, load_places, load_rents, load_snapshot, normalize_name
+from .data import (
+    DataError,
+    apply_census,
+    load_co_living,
+    load_places,
+    load_rents,
+    load_snapshot,
+    normalize_name,
+)
 
 # "mean" averages the requested features (weighted by priority), so strengths
 # the user did not ask for never lower a score. "cosine" is the original
@@ -77,9 +85,12 @@ class Recommender:
         self.data_version.update(versions)
         if feature_set == "census":
             self.data_version.update(apply_census(directory, self.areas, self.geography))
-        self.rents = {}
+        self.rents, self.co_living = {}, {}
         if rent_basis == "hud":
             self.rents, versions = load_rents(directory)
+            self.data_version.update(versions)
+            # Advisor: co-living budgets use the per-bedroom rent of listed properties.
+            self.co_living, versions = load_co_living(directory)
             self.data_version.update(versions)
         self.constant_features = {}
         for feature in (*ALL_FEATURES, *OPTIONAL_FEATURES):
@@ -87,7 +98,12 @@ class Recommender:
             if len(self.areas) > 1 and len(values) == 1:
                 self.constant_features[feature] = values.pop()
 
+    def uses_listings(self, request: Request) -> bool:
+        return request.housing_preference == "co_living" and bool(self.co_living)
+
     def rent_label(self, request: Request) -> str:
+        if self.uses_listings(request):
+            return "Per-bedroom rent from co-living listings (lowest 'from' price)"
         if self.rent_basis == "hud":
             return f"HUD Small Area Fair Market Rent, {RENT_LABELS[rent_unit(request)]}"
         return "ACS 2018-22 median gross rent, all unit sizes"
@@ -170,7 +186,11 @@ class Recommender:
         excluded = {"missing_rent": 0, "over_budget": 0, "missing_features": 0}
         candidates = []
         for area in self.areas:
-            if self.rent_basis == "hud":
+            listings = self.co_living.get(area["zip"], []) if self.uses_listings(request) else []
+            if self.uses_listings(request):
+                # Only ZIPs with a listed private bedroom in a shared apartment qualify.
+                rent = min((x["per_bedroom_rent_from"] for x in listings), default=None)
+            elif self.rent_basis == "hud":
                 # HUD also publishes benchmarks for ZIPs with no rental housing (PO boxes,
                 # the air reserve base); ACS finding no rental market keeps them excluded.
                 rent = (
@@ -221,6 +241,11 @@ class Recommender:
             }
             if near:
                 item["distance_miles"] = round(near[area["zip"]][0], 1)
+            if listings:
+                # Only the properties whose per-bedroom rent fits the budget.
+                item["co_living_listings"] = [
+                    dict(x) for x in listings if x["per_bedroom_rent_from"] <= request.budget_max
+                ]
             if "measures" in area:
                 item["measures"] = dict(area["measures"])
             if "transit_service" in self.geography.get(area["zip"], {}):
@@ -303,8 +328,13 @@ class Recommender:
         response["feature_order"] = list(features)
         response["preference_vector"] = list(user)
         if request.housing_preference == "co_living":
+            count = sum(len(v) for v in self.co_living.values())
             response["warnings"].append(
-                "Co-living room prices are not yet included; the HUD studio rent stands in "
+                f"Co-living only includes ZIPs with a listed private bedroom in a shared "
+                f"apartment ({count} properties); rent is the lowest per-bedroom 'from' price, "
+                "which may reflect specials. Availability is unverified."
+                if self.uses_listings(request)
+                else "Co-living room prices are not yet included; the HUD studio rent stands in "
                 "for per-bedroom rent."
                 if self.rent_basis == "hud"
                 else "Co-living room prices are unavailable; area rent is a proxy."

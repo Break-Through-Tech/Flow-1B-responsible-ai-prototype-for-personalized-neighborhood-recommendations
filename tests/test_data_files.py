@@ -84,6 +84,17 @@ def test_names_aliases_and_transit_reference_known_zips():
         assert all(float(row[c]) >= 0 for c in ("transit_stops", "routes", "weekday_departures"))
 
 
+def test_co_living_listings_are_unique_sourced_and_priced():
+    listings = rows("co_living_listings.csv")
+    names = [row["property"].strip().lower() for row in listings]
+    assert len(names) == len(set(names)), "each property is counted once"
+    for row in listings:
+        assert row["zip"] in COUNTY
+        low, high = float(row["per_bedroom_rent_from"]), float(row["per_bedroom_rent_to"])
+        assert 0 < low <= high, row["property"]
+        assert row["sources"].strip() and row["observed"].strip()
+
+
 INPUTS = [
     CACHE / "census" / "2023_Gaz_zcta_national.txt",
     CACHE / "census" / "b08301.dat",
