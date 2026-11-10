@@ -2,6 +2,10 @@
 
 Last updated: October 21, 2026. Owner: Om (`ompatel181005`). Written for an AI coding agent continuing this work; read it fully before changing anything.
 
+## Update: November 9, 2026 (advisor feedback)
+
+PRs #17–#21 are merged; main has all five MCP tools (116 tests). Karla's feedback was handled on branch `om-advisor-feedback`: neighborhood-level evaluation (`eval/neighborhood_zips.json`, `expected_neighborhoods` on profiles, `evaluate(..., neighborhoods)`); new `low_noise` tag (`OPTIONAL_FEATURES`; joins the vector only when requested); `quiet` = noise stand-in with warning; held-out draft `eval/heldout_profiles_draft.json` (do not evaluate before advisor review); budget flags and co-living findings in `docs/karla_review.md`. Open: 2026 rent source by unit size, Flow Wynwood per-bedroom rent, the P3 vs listing-rule conflict, and a residential-character measure for quiet. 121 tests.
+
 ## Update: November 4, 2026 (Joana's data)
 
 Tested Joana's new data from `origin/joana` (no PR yet; her branch moves `data/*.csv` into `data/cleaned/` and `data/raw/`, which will break engine paths, so coordinate before it merges). Cached copies are in `experiments/feature_candidates/joana/` (git-ignored); `build_data.py` derives `data/zip_area_names.csv`, `data/transit_service.csv` and the `match` column in `neighborhood_aliases.csv`. Adopted: area names (rankings unchanged) and transit service as descriptive output. Rejected for ranking: GTFS transit score (worse on P5) and HUD rents (P@3 falls; P4 fails); the latter is raised with Karla. Zillow 2026 rents are 64% median-imputed, so they're unusable. 58 tests. MCP work is on separate branch `om-mcp-crowd-themes` (PR #18), which conflicts with Daniel's PR #19 (mcp 1.30 vs 2.x, both add `mcp_server.py`).

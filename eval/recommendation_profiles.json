@@ -7,6 +7,7 @@
     "housing_preference": "own_apartment",
     "tags": ["transit", "walkable"],
     "expected_relevant_zips": ["33130", "33128", "33127"],
+    "expected_neighborhoods": ["Brickell", "Downtown", "Wynwood"],
     "not_relevant_zips": ["33186", "33156"]
   },
   {
@@ -17,6 +18,7 @@
     "housing_preference": "own_apartment",
     "tags": ["social", "walkable"],
     "expected_relevant_zips": ["33127", "33130", "33128"],
+    "expected_neighborhoods": ["Wynwood", "Brickell", "Downtown"],
     "not_relevant_zips": ["33185"]
   },
   {
@@ -27,6 +29,7 @@
     "housing_preference": "co_living",
     "tags": ["co_living", "transit"],
     "expected_relevant_zips": ["33128", "33130"],
+    "expected_neighborhoods": ["Downtown", "Brickell"],
     "not_relevant_zips": ["33156"]
   },
   {
@@ -37,6 +40,7 @@
     "housing_preference": "own_apartment",
     "tags": ["quiet", "pet_friendly"],
     "expected_relevant_zips": ["33133", "33134", "33156"],
+    "expected_neighborhoods": ["Coconut Grove", "Coral Gables", "Pinecrest"],
     "not_relevant_zips": ["33139"]
   },
   {
@@ -47,6 +51,7 @@
     "housing_preference": "own_apartment",
     "tags": ["transit", "social"],
     "expected_relevant_zips": ["33130", "33128"],
+    "expected_neighborhoods": ["Brickell", "Downtown"],
     "not_relevant_zips": ["33181"]
   }
 ]

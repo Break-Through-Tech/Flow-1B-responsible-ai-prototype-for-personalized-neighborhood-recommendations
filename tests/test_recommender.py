@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from flow_neighborhoods import Recommender
-from flow_neighborhoods.contracts import ALL_FEATURES, ValidationError
+from flow_neighborhoods.contracts import ALL_FEATURES, Request, ValidationError
 from flow_neighborhoods.data import CENSUS_COLUMNS, DataError
 from flow_neighborhoods.evaluate import evaluate
 
@@ -514,3 +514,78 @@ def test_repository_names_cover_snapshot_and_resolve_neighborhoods():
         "Little Haiti": ["33150"],
         "Brickell Key": ["33131"],
     }
+
+
+def test_low_noise_tag_joins_the_vector_only_when_requested(tmp_path):
+    engine = census_snapshot(
+        tmp_path,
+        [area("00001"), area("00002"), area("00003")],
+        {
+            "00001": (90, 0.4, 40, 30, 100),
+            "00002": (40, 0.7, 5, 20, 100),
+            "00003": (2, 0.0, 1, 1, 100),
+        },
+    )
+    calm = engine.recommend(request(tags=["low_noise"]))
+    assert [row["zip"] for row in calm["results"]] == ["00003", "00001", "00002"]
+    assert calm["feature_order"] == ["low_noise"]
+    plain = engine.recommend(request())
+    assert "low_noise" not in plain["feature_order"]
+    quiet = engine.recommend(request(tags=["quiet"]))
+    assert any("residential character" in text for text in quiet["warnings"])
+    cosine = Recommender(tmp_path, scorer="cosine")
+    assert "low_noise" not in cosine.recommend(request())["feature_order"]
+
+
+def test_low_noise_needs_census_features(tmp_path):
+    engine = snapshot(tmp_path, [area("00001", transit=1)])
+    result = engine.recommend(request(tags=["low_noise"]))
+    assert result["status"] == "no_matches"
+    assert result["excluded_counts"]["missing_features"] == 1
+    assert any("census feature set" in text for text in result["warnings"])
+
+
+def test_neighborhood_scoring_counts_every_residential_zip(tmp_path):
+    engine = snapshot(
+        tmp_path, [area("00001", transit=1), area("00002", transit=0.9), area("00003")]
+    )
+    profile = dict(
+        request(),
+        profile_id="t",
+        expected_relevant_zips=["00001"],
+        expected_neighborhoods=["Town", "Other"],
+    )
+    zip_only = evaluate(engine, [profile])
+    assert zip_only["summary"]["3"]["precision"] == pytest.approx(1 / 3)
+    assert zip_only["summary"]["3"]["neighborhood_coverage"] is None
+    mapped = evaluate(engine, [profile], {"Town": ["00001", "00002"], "Other": ["00009"]})
+    assert mapped["summary"]["3"]["precision"] == pytest.approx(2 / 3)
+    assert mapped["summary"]["3"]["zip_label_precision"] == pytest.approx(1 / 3)
+    assert mapped["summary"]["3"]["neighborhood_coverage"] == 0.5
+    with pytest.raises(ValueError, match="unknown neighborhoods"):
+        evaluate(engine, [profile], {"Town": ["00001"]})
+
+
+def test_repository_profiles_name_known_neighborhoods():
+    root = Path(__file__).resolve().parents[1]
+    mapping = json.loads((root / "eval/neighborhood_zips.json").read_text())["neighborhoods"]
+    for profile in json.loads((root / "eval/recommendation_profiles.json").read_text()):
+        assert set(profile["expected_neighborhoods"]) <= set(mapping)
+        named = {z for n in profile["expected_neighborhoods"] for z in mapping[n]}
+        assert set(profile["expected_relevant_zips"]) <= named
+
+
+def test_heldout_draft_is_valid_but_not_evaluated_here():
+    # Structure only: the advisor reviews expected matches before anyone scores this set.
+    root = Path(__file__).resolve().parents[1]
+    draft = json.loads((root / "eval/heldout_profiles_draft.json").read_text())
+    mapping = json.loads((root / "eval/neighborhood_zips.json").read_text())["neighborhoods"]
+    assert draft["status"] == "draft_for_advisor_review"
+    keys = ("budget_max", "household", "housing_preference", "tags", "weights", "near")
+    for profile in draft["profiles"]:
+        Request.parse({k: profile[k] for k in keys if k in profile})
+        assert set(profile["expected_neighborhoods"]) <= set(mapping), profile["profile_id"]
+        assert set(profile["not_relevant_neighborhoods"]) <= set(mapping)
+        assert not set(profile["expected_neighborhoods"]) & set(
+            profile["not_relevant_neighborhoods"]
+        )

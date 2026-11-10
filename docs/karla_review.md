@@ -108,6 +108,16 @@ Two data-quality points:
 - The starter label for **33131 is "South Beach"**, but 33131 is Brickell / Brickell Key (South Beach is 33139). 28 ZIPs differ between the starter labels and the sourced names.
 - **Our rents look out of date.** The engine filters on the ACS 2018–22 median gross rent. Downtown is $1,191 there, versus a HUD 1-bedroom benchmark of $1,750 and an August 2026 Zillow rent of $2,799. Some recommendations may be unaffordable in practice.
 
+## Advisor feedback (November 9) and actions
+
+| Feedback | Action | Status |
+|---|---|---|
+| **Test profiles:** score by neighborhood; one neighborhood spans several residential ZIPs | `eval/neighborhood_zips.json` holds the advisor's table; profiles gain `expected_neighborhoods`; `evaluate` counts a result as relevant when its ZIP is in an expected neighborhood, adds `neighborhood_coverage`, and keeps `zip_label_precision` for comparison. Downtown (not in the table) keeps 33128. No residential addresses are available, so shared ZIPs (33129, 33133, 33143, 33156) count for each listed neighborhood. | Done. Current engine: P@3 0.53, coverage@3 0.67; P4 still 0. |
+| **Held-out set for review** | `eval/heldout_profiles_draft.json`: 8 profiles, expected neighborhoods written **before** running the engine. Not evaluated until the advisor approves them. | Awaiting review |
+| **"Quiet" = residential character** (quiet residential streets, suburban feel); noise is a separate measure | New `low_noise` tag (transportation noise). Building-type candidates (single-unit share, low-rise share) were tested and did not move P4's matches (`experiments/feature_candidates/quiet_residential.py`). `quiet` uses the noise measure as a labeled stand-in until a residential-character signal exists; candidates are review-text sentiment (Nadia's NLP) or tree canopy cover. | Partial |
+| **Rent:** 2026 asking rents by comparable unit size; flag profiles | Zillow Aug-2026 asking rents cover only 29 of 80 ZIPs and have no unit sizes. HUD rents cover all ZIPs by unit size but are benchmarks (vintage unstated), and Zillow is a median 17% higher. Budget flags at 2026 rents (living alone → 1-bedroom, co-leasers → 2-bedroom): **P4 ($2,200) has no affordable expected ZIP** (cheapest HUD 2-bedroom $2,510). P1, P2 and P3 keep only Wynwood 33127 and Downtown. At Zillow asking rents, no profile except P5 has an affordable expected ZIP. | Source decision needed |
+| **Co-living:** listings with a private bedroom in a shared apartment; per-bedroom rent; count each property once | Flow Wynwood and i5 Wynwood, both 33127. i5 per-bedroom is about $1,299–$1,626 across listing sites; Flow Wynwood publishes no per-bedroom price. Only Wynwood qualifies, but P3 (co-living) expects Downtown/Brickell. | Data gap; P3 conflict |
+
 ## Questions for you
 
 1. **Test profiles:** how did you choose the expected ZIPs (local knowledge, data, or both)? Could you write more, including suburban and conflicting-priority cases, or should we write a held-out set that you review? Each tag is currently tested by only 1–3 profiles.

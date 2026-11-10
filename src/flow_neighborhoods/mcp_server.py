@@ -125,7 +125,7 @@ def create_server(directory: str | Path | None = None, scorer: str = "mean") -> 
     ) -> Recommendation:
         """Rank ZIPs with a hard total household monthly USD budget; never live listings.
 
-        Tags: transit, social, quiet, pet_friendly, walkable, co_living. weights sets a
+        Tags: transit, social, quiet, low_noise, pet_friendly, walkable, co_living. weights sets a
         priority per requested tag (1 nice to have, 2 important, 3 top priority; "near"
         may be weighted too). near takes up to 3 neighborhood names or ZIPs and scores
         closeness. Ranking is performed by Python. Preserve warnings, demo labels and

@@ -7,7 +7,7 @@ import math
 import re
 from pathlib import Path
 
-from .contracts import ALL_FEATURES
+from .contracts import ALL_FEATURES, OPTIONAL_FEATURES
 
 
 class DataError(ValueError):
@@ -67,6 +67,8 @@ def load_snapshot(directory: Path) -> tuple[list[dict], dict[str, list[dict]], d
             if value is not None and not 0 <= value <= 1:
                 raise DataError(f"{area['zip']}: {feature} must be between 0 and 1.")
             area[feature] = value
+        for feature in OPTIONAL_FEATURES:
+            area[feature] = None
         rent = number(area["median_rent_usd"])
         area["median_rent_usd"] = rent if rent is not None and rent > 0 else None
     snippets = read_rows(paths[2], {"snippet_id", "zip", "source", "theme", "text"})
@@ -221,7 +223,11 @@ def apply_census(directory: Path, areas: list[dict], geography: dict) -> dict:
             transit=pct["transit_commute_share"][z],
             social=pct["food_drink_per_sqmi"][z],
             walkable=pct["walk_commute_share"][z],
+            # Advisor: quiet means residential character; transportation noise is its own
+            # low_noise measure. Until a residential-character signal exists (review
+            # sentiment or tree canopy), quiet uses the noise measure as a stand-in.
             quiet=None if loud is None else 1 - loud,
+            low_noise=None if loud is None else 1 - loud,
             measures=measures[z],
         )
     return {path.name: digest(path)}

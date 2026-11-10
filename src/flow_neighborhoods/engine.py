@@ -6,7 +6,7 @@ import math
 import re
 from pathlib import Path
 
-from .contracts import ALL_FEATURES, Request, ValidationError
+from .contracts import ALL_FEATURES, OPTIONAL_FEATURES, Request, ValidationError
 from .data import DataError, apply_census, load_places, load_snapshot, normalize_name
 
 # "mean" averages the requested features (weighted by priority), so strengths
@@ -50,7 +50,7 @@ class Recommender:
         if feature_set == "census":
             self.data_version.update(apply_census(directory, self.areas, self.geography))
         self.constant_features = {}
-        for feature in ALL_FEATURES:
+        for feature in (*ALL_FEATURES, *OPTIONAL_FEATURES):
             values = {area[feature] for area in self.areas if area[feature] is not None}
             if len(self.areas) > 1 and len(values) == 1:
                 self.constant_features[feature] = values.pop()
@@ -217,6 +217,16 @@ class Recommender:
                 f"Budget is treated as the household's total: ${request.budget_max:,.0f} a month "
                 "for you and your co-leaser combined, not each person's share. Median rent covers "
                 "all unit sizes; a 2-bedroom usually costs more."
+            )
+        if "quiet" in request.tags and self.feature_set == "census":
+            response["warnings"].append(
+                "quiet is approximated by low road and aviation noise until a measure of "
+                "residential character (quiet residential streets) is available."
+            )
+        if "low_noise" in request.tags and self.feature_set == "provided":
+            response["warnings"].append(
+                "low_noise is only measured in the census feature set; with starter features "
+                "no area has a value for it."
             )
         clarification = request.clarification()
         if clarification:

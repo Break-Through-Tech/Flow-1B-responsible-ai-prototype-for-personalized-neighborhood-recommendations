@@ -12,12 +12,32 @@ from .contracts import Request
 from .engine import FEATURE_SETS, SCORERS, Recommender
 
 
-def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
+def relevant_zips(profile: dict, neighborhoods: dict[str, list[str]] | None) -> set[str]:
+    """Expected ZIPs, widened to every residential ZIP of each expected neighborhood.
+
+    A ZIP shared by two neighborhoods matches either (no addresses to split it).
+    """
+    relevant = set(profile["expected_relevant_zips"])
+    if neighborhoods and profile.get("expected_neighborhoods"):
+        unknown = set(profile["expected_neighborhoods"]) - set(neighborhoods)
+        if unknown:
+            raise ValueError(f"{profile['profile_id']}: unknown neighborhoods {sorted(unknown)}.")
+        relevant |= {z for name in profile["expected_neighborhoods"] for z in neighborhoods[name]}
+    return relevant
+
+
+def evaluate(
+    engine: Recommender, profiles: list[dict], neighborhoods: dict[str, list[str]] | None = None
+) -> dict:
+    """Layer 1 metrics. With `neighborhoods`, a result counts as relevant when its ZIP
+    belongs to an expected neighborhood; `zip_label_*` keep the original ZIP-only score."""
     if not profiles:
         raise ValueError("Evaluation needs at least one profile.")
     rows = []
     for profile in profiles:
-        relevant = set(profile["expected_relevant_zips"])
+        relevant = relevant_zips(profile, neighborhoods)
+        labeled = set(profile["expected_relevant_zips"])
+        expected_names = profile.get("expected_neighborhoods", []) if neighborhoods else []
         keys = ("budget_max", "household", "housing_preference", "tags", "weights", "near")
         payload = {key: profile[key] for key in keys if key in profile}
         # Rank over every eligible area, not just the top k, so improvements
@@ -36,6 +56,14 @@ def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
                     "profile_id": profile["profile_id"],
                     "k": k,
                     "precision": sum(item["zip"] in relevant for item in results) / k,
+                    "zip_label_precision": sum(item["zip"] in labeled for item in results) / k,
+                    "neighborhood_coverage": sum(
+                        any(item["zip"] in neighborhoods[name] for item in results)
+                        for name in expected_names
+                    )
+                    / len(expected_names)
+                    if expected_names
+                    else None,
                     "label_ceiling": min(k, len(relevant)) / k,
                     "reciprocal_rank": 1 / min(found) if found else 0.0,
                     "relevant_ranks": dict(sorted(relevant_ranks.items())),
@@ -56,6 +84,14 @@ def evaluate(engine: Recommender, profiles: list[dict]) -> dict:
         nonempty = [row for row in selected if row["response"]["returned_count"]]
         summary[str(k)] = {
             "precision": mean(row["precision"] for row in selected),
+            "zip_label_precision": mean(row["zip_label_precision"] for row in selected),
+            "neighborhood_coverage": mean(
+                row["neighborhood_coverage"]
+                for row in selected
+                if row["neighborhood_coverage"] is not None
+            )
+            if any(row["neighborhood_coverage"] is not None for row in selected)
+            else None,
             "mrr": mean(row["reciprocal_rank"] for row in selected),
             "mean_score": mean(row["mean_score"] for row in nonempty) if nonempty else None,
             "budget_pass_rate_nonempty": mean(row["budget_pass"] for row in nonempty)
@@ -73,6 +109,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--profiles", type=Path, default=Path("eval/recommendation_profiles.json"))
+    parser.add_argument(
+        "--neighborhoods",
+        type=Path,
+        default=Path("eval/neighborhood_zips.json"),
+        help="neighborhood -> residential ZIPs; pass an empty string for ZIP-label scoring only",
+    )
     parser.add_argument("--scorer", choices=list(SCORERS), default="mean")
     parser.add_argument("--features", choices=FEATURE_SETS, default="census")
     parser.add_argument(
@@ -81,7 +123,10 @@ def main():
     args = parser.parse_args()
     args.output = args.output or Path(f"outputs/recommender_{args.scorer}_{args.features}.json")
     engine = Recommender(args.data_dir, scorer=args.scorer, feature_set=args.features)
-    report = evaluate(engine, json.loads(args.profiles.read_text(encoding="utf-8")))
+    neighborhoods = None
+    if str(args.neighborhoods) not in ("", ".") and args.neighborhoods.exists():
+        neighborhoods = json.loads(args.neighborhoods.read_text(encoding="utf-8"))["neighborhoods"]
+    report = evaluate(engine, json.loads(args.profiles.read_text(encoding="utf-8")), neighborhoods)
     code_paths = sorted(Path(__file__).parent.glob("*.py"))
     report["metadata"] = {
         "generated_at": datetime.now(UTC).isoformat(),
