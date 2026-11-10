@@ -261,8 +261,13 @@ def test_repository_snapshot_and_all_profiles():
     assert "33122" not in [row["zip"] for row in airport["results"]]
     social = census.recommend(request(budget_max=10000, tags=["social", "walkable", "transit"]))
     assert social["excluded_counts"]["missing_features"] == 0
-    brickell = census.recommend(request(budget_max=2000, near=["Brickell"], weights={"near": 3}))
+    # HUD 1-bedroom in 33130 is $2,300: over a $2,000 budget, within $2,500.
+    tight = census.recommend(request(budget_max=2000, near=["Brickell"], weights={"near": 3}))
+    assert "33130" not in [row["zip"] for row in tight["results"]]
+    brickell = census.recommend(request(budget_max=2500, near=["Brickell"], weights={"near": 3}))
     assert brickell["results"][0]["zip"] == "33130"
+    assert brickell["results"][0]["rent_usd"] == 2300
+    assert "1-bedroom" in brickell["results"][0]["rent_basis"]
     assert Recommender(root / "data").crowd_themes("33130")["evidence"]
 
 
@@ -392,7 +397,18 @@ def census_snapshot(tmp_path, areas, rows):
         ["zip", *fields],
         [dict(zip=z, **dict(zip(fields, values))) for z, values in rows.items()],
     )
+    hud(tmp_path, {row["zip"]: row["median_rent_usd"] for row in areas})
     return Recommender(tmp_path, feature_set="census")
+
+
+def hud(tmp_path, rents):
+    """rents_hud.csv with every unit size at the given rent (blank rent = no row)."""
+    units = ["efficiency", "one_bedroom", "two_bedroom", "three_bedroom", "four_bedroom"]
+    write_csv(
+        tmp_path / "rents_hud.csv",
+        ["zip", *units, "source"],
+        [{"zip": z, **dict.fromkeys(units, r), "source": "test"} for z, r in rents.items() if r],
+    )
 
 
 def test_census_features_measure_distinct_things(tmp_path):
@@ -589,3 +605,73 @@ def test_heldout_draft_is_valid_but_not_evaluated_here():
         assert not set(profile["expected_neighborhoods"]) & set(
             profile["not_relevant_neighborhoods"]
         )
+
+
+def test_hud_rent_matches_household_unit_size(tmp_path):
+    census_snapshot(
+        tmp_path,
+        [area("00001", 1500), area("00002", 1500), area("00003", 1500)],
+        {z: (10, 0.1, 10, 10, 100) for z in ("00001", "00002", "00003")},
+    )
+    units = ["efficiency", "one_bedroom", "two_bedroom", "three_bedroom", "four_bedroom"]
+    write_csv(
+        tmp_path / "rents_hud.csv",
+        ["zip", *units, "source"],
+        [
+            {
+                "zip": "00001",
+                "efficiency": 1200,
+                "one_bedroom": 1400,
+                "two_bedroom": 1900,
+                "three_bedroom": 2400,
+                "four_bedroom": 2800,
+                "source": "test",
+            },
+            {
+                "zip": "00002",
+                "efficiency": 1600,
+                "one_bedroom": 1800,
+                "two_bedroom": 2300,
+                "three_bedroom": 2800,
+                "four_bedroom": 3200,
+                "source": "test",
+            },
+        ],
+    )
+    engine = Recommender(tmp_path)
+    alone = engine.recommend(request(budget_max=1500))
+    assert [r["zip"] for r in alone["results"]] == ["00001"]
+    assert (
+        alone["results"][0]["rent_usd"] == 1400 and "1-bedroom" in alone["results"][0]["rent_basis"]
+    )
+    assert alone["excluded_counts"] == {"missing_rent": 1, "over_budget": 1, "missing_features": 0}
+    couple = engine.recommend(request(budget_max=2000, household="with_co_leaser"))
+    assert [(r["zip"], r["rent_usd"]) for r in couple["results"]] == [("00001", 1900)]
+    shared = engine.recommend(
+        request(budget_max=1300, housing_preference="co_living", tags=["co_living"])
+    )
+    assert [(r["zip"], r["rent_usd"]) for r in shared["results"]] == [("00001", 1200)]
+    assert any("studio rent stands in" in text for text in shared["warnings"])
+    assert any("not an asking rent" in text for text in alone["warnings"])
+    assert alone["results"][0]["median_rent_usd"] == 1500
+
+
+def test_hud_basis_skips_zips_without_a_rental_market(tmp_path):
+    census_snapshot(
+        tmp_path,
+        [area("00001", ""), area("00002", 1500)],
+        {z: (10, 0.1, 10, 10, 100) for z in ("00001", "00002")},
+    )
+    hud(tmp_path, {"00001": 1000, "00002": 1000})
+    result = Recommender(tmp_path).recommend(request(budget_max=1500))
+    assert [r["zip"] for r in result["results"]] == ["00002"]
+    assert result["excluded_counts"]["missing_rent"] == 1
+
+
+def test_rent_basis_options(tmp_path):
+    snapshot(tmp_path, [area("00001", 1500, transit=1)])
+    assert Recommender(tmp_path, feature_set="provided").rent_basis == "acs"
+    with pytest.raises(DataError, match="rents_hud.csv"):
+        Recommender(tmp_path, feature_set="provided", rent_basis="hud")
+    with pytest.raises(ValueError):
+        Recommender(tmp_path, feature_set="provided", rent_basis="zillow")

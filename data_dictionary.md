@@ -62,6 +62,16 @@ Name-to-ZIP dictionary for `near` requests. One row per (alias, zip); a name can
 | match | `primary`: the place is in this ZIP. `secondary`: the ZIP also touches it; used only when the name has no primary match |
 | source | `area_features.csv area_name` (advisor's starter labels), `USPS city, ZIP Code Business Patterns 2021`, or Joana's `area-name.csv` |
 
+## rents_hud.csv
+
+HUD Small Area Fair Market Rents per ZIP and unit size, from Joana's `data/raw/new/HUD-SAFMR.csv`; the HUD release year is not stated in the source file. **The budget filter compares against these** for the census feature set (`rent_basis="hud"`): living alone → `one_bedroom`, with a co-leaser → `two_bedroom`, co-living → `efficiency` as a stand-in for per-bedroom rent. These are benchmarks, not asking rents; where Zillow's August 2026 asking rents exist (29 ZIPs) they are a median 17% higher. ZIPs where the ACS finds no rental market (33101 PO boxes, 33039 air reserve base) stay excluded even though HUD lists them.
+
+| Column | Description |
+|--------|-------------|
+| zip | 5-digit ZIP |
+| efficiency, one_bedroom, two_bedroom, three_bedroom, four_bedroom | Monthly rent benchmark, USD |
+| source | Provenance |
+
 ## zip_area_names.csv
 
 Display names per ZCTA, from Joana's `data/raw/new/area-name.csv` (USPS City State Product; Census 2020 ZCTA-to-Place relationship). Shown as `neighborhood` / `other_areas` in results; `area_name` (starter label) is unchanged. Covers all 80 snapshot ZIPs, including the 24 that the starter data labels "ZCTA5 xxxxx".

@@ -69,7 +69,7 @@ def evaluate(
                     "relevant_ranks": dict(sorted(relevant_ranks.items())),
                     "mean_score": mean(item["score"] for item in results) if results else None,
                     "budget_pass": all(
-                        0 < item["median_rent_usd"] <= response["applied_filters"]["budget_max"]
+                        0 < item["rent_usd"] <= response["applied_filters"]["budget_max"]
                         for item in results
                     )
                     if results

@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 from .contracts import ALL_FEATURES, OPTIONAL_FEATURES, Request, ValidationError
-from .data import DataError, apply_census, load_places, load_snapshot, normalize_name
+from .data import DataError, apply_census, load_places, load_rents, load_snapshot, normalize_name
 
 # "mean" averages the requested features (weighted by priority), so strengths
 # the user did not ask for never lower a score. "cosine" is the original
@@ -18,6 +18,26 @@ SCORERS = {"mean": "mean-v1", "cosine": "cosine-v1"}
 # and quiet with measured values (see data.apply_census). "provided" ranks on
 # area_features_cleaned.csv as is, kept for comparison.
 FEATURE_SETS = ("census", "provided")
+# Rent compared with the budget. "hud": HUD Small Area Fair Market Rent for the unit
+# size the household needs (advisor asked for 2026 rents by comparable unit size;
+# HUD is the complete stand-in until ZIP-level asking rents by size are available).
+# "acs": ACS 2018-22 median gross rent, all unit sizes (the original basis).
+RENT_BASES = ("hud", "acs")
+RENT_LABELS = {
+    "efficiency": "studio",
+    "one_bedroom": "1-bedroom",
+    "two_bedroom": "2-bedroom",
+}
+
+
+def rent_unit(request: Request) -> str:
+    """Unit size the household needs: co-leasers a 2-bedroom; co-living a studio as a
+    stand-in for per-bedroom rent; otherwise a 1-bedroom."""
+    if request.housing_preference == "co_living":
+        return "efficiency"
+    return "two_bedroom" if request.household == "with_co_leaser" else "one_bedroom"
+
+
 # A name covering more ZIPs than this (e.g. "Miami") is too broad to mean "near".
 MAX_NEAR_ZIPS = 10
 
@@ -34,26 +54,43 @@ def miles(a: dict, b: dict) -> float:
 
 class Recommender:
     def __init__(
-        self, data_dir: str | Path = "data", scorer: str = "mean", feature_set: str = "census"
+        self,
+        data_dir: str | Path = "data",
+        scorer: str = "mean",
+        feature_set: str = "census",
+        rent_basis: str | None = None,
     ):
         if scorer not in SCORERS:
             raise ValueError(f"scorer must be one of {', '.join(SCORERS)}.")
         if feature_set not in FEATURE_SETS:
             raise ValueError(f"feature_set must be one of {', '.join(FEATURE_SETS)}.")
+        rent_basis = rent_basis or ("hud" if feature_set == "census" else "acs")
+        if rent_basis not in RENT_BASES:
+            raise ValueError(f"rent_basis must be one of {', '.join(RENT_BASES)}.")
         self.scorer = scorer
         self.model_version = SCORERS[scorer]
         self.feature_set = feature_set
+        self.rent_basis = rent_basis
         directory = Path(data_dir)
         self.areas, self.evidence, self.data_version = load_snapshot(directory)
         self.geography, self.aliases, versions = load_places(directory)
         self.data_version.update(versions)
         if feature_set == "census":
             self.data_version.update(apply_census(directory, self.areas, self.geography))
+        self.rents = {}
+        if rent_basis == "hud":
+            self.rents, versions = load_rents(directory)
+            self.data_version.update(versions)
         self.constant_features = {}
         for feature in (*ALL_FEATURES, *OPTIONAL_FEATURES):
             values = {area[feature] for area in self.areas if area[feature] is not None}
             if len(self.areas) > 1 and len(values) == 1:
                 self.constant_features[feature] = values.pop()
+
+    def rent_label(self, request: Request) -> str:
+        if self.rent_basis == "hud":
+            return f"HUD Small Area Fair Market Rent, {RENT_LABELS[rent_unit(request)]}"
+        return "ACS 2018-22 median gross rent, all unit sizes"
 
     def crowd_themes(self, zip_code: str) -> dict:
         if not isinstance(zip_code, str) or not re.fullmatch(r"[0-9]{5}", zip_code):
@@ -133,7 +170,16 @@ class Recommender:
         excluded = {"missing_rent": 0, "over_budget": 0, "missing_features": 0}
         candidates = []
         for area in self.areas:
-            rent = area["median_rent_usd"]
+            if self.rent_basis == "hud":
+                # HUD also publishes benchmarks for ZIPs with no rental housing (PO boxes,
+                # the air reserve base); ACS finding no rental market keeps them excluded.
+                rent = (
+                    self.rents.get(area["zip"], {}).get(rent_unit(request))
+                    if area["median_rent_usd"] is not None
+                    else None
+                )
+            else:
+                rent = area["median_rent_usd"]
             if rent is None:
                 excluded["missing_rent"] += 1
                 continue
@@ -155,8 +201,12 @@ class Recommender:
                 "other_areas": list(self.geography.get(area["zip"], {}).get("other_areas", [])),
                 "score": min(1.0, sum(contributions)),
                 "score_method": self.model_version,
-                "median_rent_usd": rent,
-                "rent_source": "area_features_cleaned.csv",
+                "rent_usd": rent,
+                "rent_basis": self.rent_label(request),
+                "median_rent_usd": area["median_rent_usd"],
+                "rent_source": "rents_hud.csv"
+                if self.rent_basis == "hud"
+                else "area_features_cleaned.csv",
                 "source_period": None,
                 "matched_preferences": [
                     {
@@ -195,14 +245,22 @@ class Recommender:
             "applied_filters": {
                 "budget_max": request.budget_max,
                 "budget_basis": "household_total_monthly_usd",
-                "rent_field": "median_rent_usd",
+                "rent_basis": self.rent_label(request),
                 "household": request.household,
                 "housing_preference": request.housing_preference,
                 "weights": {tag: request.weight(tag) for tag in request.tags},
                 "near": {},
             },
             "warnings": [
-                "Rent is a snapshot area-level estimate; actual prices and availability are unverified.",
+                (
+                    f"Budget is compared with the HUD Small Area Fair Market Rent for a "
+                    f"{RENT_LABELS[rent_unit(request)]}: a benchmark, not an asking rent. Zillow "
+                    "2026 asking rents run about 17% higher where available. Actual prices and "
+                    "availability are unverified."
+                    if self.rent_basis == "hud"
+                    else "Rent is an ACS 2018-22 area median for all unit sizes, well below 2026 "
+                    "rents; actual prices and availability are unverified."
+                ),
                 "Lifestyle scores are starter proxies. All text evidence is demo content."
                 if self.feature_set == "provided"
                 else "transit and walkable are commute shares of residents (ACS 2018-22); social "
@@ -246,7 +304,10 @@ class Recommender:
         response["preference_vector"] = list(user)
         if request.housing_preference == "co_living":
             response["warnings"].append(
-                "Co-living room prices are unavailable; area rent is a proxy."
+                "Co-living room prices are not yet included; the HUD studio rent stands in "
+                "for per-bedroom rent."
+                if self.rent_basis == "hud"
+                else "Co-living room prices are unavailable; area rent is a proxy."
             )
         for feature, weight in zip(features, user):
             if weight and feature in self.constant_features:

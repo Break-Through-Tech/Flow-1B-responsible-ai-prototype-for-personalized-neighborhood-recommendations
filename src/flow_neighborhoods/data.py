@@ -181,6 +181,23 @@ def load_places(directory: Path) -> tuple[dict, dict, dict]:
     return geography, aliases, {path.name: digest(path) for path in paths}
 
 
+RENT_UNITS = ("efficiency", "one_bedroom", "two_bedroom", "three_bedroom", "four_bedroom")
+
+
+def load_rents(directory: Path) -> tuple[dict[str, dict[str, float | None]], dict]:
+    """HUD Small Area Fair Market Rents per ZIP and unit size (benchmarks, not asking rents)."""
+    path = directory / "rents_hud.csv"
+    if not path.exists():
+        raise DataError("The HUD rent basis needs rents_hud.csv.")
+    rents = {}
+    for z, row in unique(read_rows(path, {"zip", *RENT_UNITS, "source"}), "zip").items():
+        values = {unit: number(row[unit]) for unit in RENT_UNITS}
+        if any(v is not None and v <= 0 for v in values.values()):
+            raise DataError(f"rents_hud.csv: non-positive rent for {z}.")
+        rents[z] = values
+    return rents, {path.name: digest(path)}
+
+
 def apply_census(directory: Path, areas: list[dict], geography: dict) -> dict:
     """Replace the placeholder lifestyle scores with measured ones (percentiles).
 
