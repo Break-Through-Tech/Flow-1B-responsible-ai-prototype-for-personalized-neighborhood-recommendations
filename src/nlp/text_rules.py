@@ -1,7 +1,7 @@
 """Shared text helpers: normalization, clause splitting, keyword matching."""
 
 import re
-from functools import lru_cache
+from functools import cache
 
 # Sentiment is scored per clause, so "Rent is high but the area is great"
 # gives one rent clause and one area clause.
@@ -19,7 +19,7 @@ def split_clauses(text):
     return [p.strip(" ,") for p in parts if p and p.strip(" ,")]
 
 
-@lru_cache(maxsize=None)
+@cache
 def _compile(term):
     """Word-boundary match; a trailing * matches any ending (afford* -> affordable)."""
     if term.endswith("*"):

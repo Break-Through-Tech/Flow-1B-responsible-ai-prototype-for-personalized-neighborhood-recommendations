@@ -7,7 +7,7 @@ tag_vocabulary.json and logged in data/nlp/tag_additions.jsonl.
 
 import json
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .config import MIN_PROPOSALS, TAG_ADDITIONS_LOG, TAG_PROPOSALS
 from .vocabulary import add_tag, find_existing, is_blocked
@@ -33,8 +33,9 @@ def save_ledger(ledger, path=TAG_PROPOSALS):
 def record(ledger, proposals, zip_of):
     """Add (snippet_id, proposal) pairs to the ledger."""
     for sid, p in proposals:
-        e = ledger.setdefault(p["tag"], {"snippet_ids": [], "zips": [], "parents": [],
-                                         "descriptions": []})
+        e = ledger.setdefault(
+            p["tag"], {"snippet_ids": [], "zips": [], "parents": [], "descriptions": []}
+        )
         if sid in e["snippet_ids"]:
             continue
         e["snippet_ids"].append(sid)
@@ -54,7 +55,7 @@ def promote(vocab, ledger, min_count=MIN_PROPOSALS, log_path=TAG_ADDITIONS_LOG):
     for name in sorted(ledger):
         e = ledger[name]
         if is_blocked(name) or find_existing(vocab, name):
-            del ledger[name]                      # now covered by an existing tag
+            del ledger[name]  # now covered by an existing tag
             continue
         if len(e["snippet_ids"]) < min_count:
             continue
@@ -62,10 +63,18 @@ def promote(vocab, ledger, min_count=MIN_PROPOSALS, log_path=TAG_ADDITIONS_LOG):
         parent = votes.most_common(1)[0][0] if votes else None
         description = e["descriptions"][0] if e["descriptions"] else ""
         version = add_tag(vocab, name, parent, description, source="auto")
-        _log(log_path, {"tag": name, "parent": vocab["tags"][name]["parent"],
-                        "description": description, "vocabulary_version": version,
-                        "snippet_ids": e["snippet_ids"], "zips": e["zips"],
-                        "added_at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+        _log(
+            log_path,
+            {
+                "tag": name,
+                "parent": vocab["tags"][name]["parent"],
+                "description": description,
+                "vocabulary_version": version,
+                "snippet_ids": e["snippet_ids"],
+                "zips": e["zips"],
+                "added_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            },
+        )
         del ledger[name]
         added.append(name)
     return added

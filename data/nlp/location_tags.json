@@ -4,6 +4,7 @@
  "locations": {
   "33127": {
    "snippet_count": 3,
+   "demo_snippet_count": 3,
    "is_demo": true,
    "tags": {
     "walkable": {
@@ -14,6 +15,8 @@
       {
        "snippet_id": "T1",
        "quote": "Great walkability",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -26,6 +29,8 @@
       {
        "snippet_id": "T1",
        "quote": "easy bus access",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -38,6 +43,8 @@
       {
        "snippet_id": "T1",
        "quote": "easy bus access",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "bus_access"
       }
      ]
@@ -50,11 +57,15 @@
       {
        "snippet_id": "T1",
        "quote": "welcoming as a newcomer",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       },
       {
        "snippet_id": "T13",
        "quote": "new to Miami",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -67,6 +78,8 @@
       {
        "snippet_id": "T2",
        "quote": "Lots of events",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -79,11 +92,15 @@
       {
        "snippet_id": "T2",
        "quote": "Lots of events",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "events"
       },
       {
        "snippet_id": "T2",
        "quote": "people meeting up",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -96,6 +113,8 @@
       {
        "snippet_id": "T2",
        "quote": "loud on weekends",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -108,6 +127,8 @@
       {
        "snippet_id": "T2",
        "quote": "loud on weekends",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "weekend_noise"
       }
      ]
@@ -120,6 +141,8 @@
       {
        "snippet_id": "T13",
        "quote": "Shared lofts",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -132,11 +155,15 @@
       {
        "snippet_id": "T13",
        "quote": "Shared lofts",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "shared_lofts"
       },
       {
        "snippet_id": "T13",
        "quote": "co-living",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -149,6 +176,8 @@
       {
        "snippet_id": "T13",
        "quote": "creatives",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -157,6 +186,7 @@
   },
   "33128": {
    "snippet_count": 3,
+   "demo_snippet_count": 3,
    "is_demo": true,
    "tags": {
     "central": {
@@ -167,6 +197,8 @@
       {
        "snippet_id": "T12",
        "quote": "Central location",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -179,6 +211,8 @@
       {
        "snippet_id": "T12",
        "quote": "easy to get around with public transit",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -191,23 +225,8 @@
       {
        "snippet_id": "T14",
        "quote": "co-living rooms",
-       "via": null
-      },
-      {
-       "snippet_id": "T14",
-       "quote": "help me meet roommates",
-       "via": "roommate_friendly"
-      }
-     ]
-    },
-    "roommate_friendly": {
-     "level": "specific",
-     "parent": "co_living",
-     "count": 1,
-     "evidence": [
-      {
-       "snippet_id": "T14",
-       "quote": "help me meet roommates",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -220,6 +239,8 @@
       {
        "snippet_id": "T14",
        "quote": "when I first arrived",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -232,6 +253,8 @@
       {
        "snippet_id": "T16",
        "quote": "Downtown events",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -244,11 +267,15 @@
       {
        "snippet_id": "T16",
        "quote": "Downtown events",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "events"
       },
       {
        "snippet_id": "T16",
        "quote": "easy to build a social circle",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -261,6 +288,8 @@
       {
        "snippet_id": "T16",
        "quote": "after-work scene",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -273,6 +302,8 @@
       {
        "snippet_id": "T16",
        "quote": "after-work scene",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "after_work_scene"
       }
      ]
@@ -281,6 +312,7 @@
   },
   "33130": {
    "snippet_count": 4,
+   "demo_snippet_count": 4,
    "is_demo": true,
    "tags": {
     "metrorail": {
@@ -291,6 +323,8 @@
       {
        "snippet_id": "T3",
        "quote": "Metrorail nearby",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -303,11 +337,15 @@
       {
        "snippet_id": "T3",
        "quote": "Metrorail nearby",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "metrorail"
       },
       {
        "snippet_id": "T3",
        "quote": "commuting easy without a car",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -320,6 +358,8 @@
       {
        "snippet_id": "T4",
        "quote": "street noise is real",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -332,6 +372,8 @@
       {
        "snippet_id": "T4",
        "quote": "street noise is real",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "street_noise"
       }
      ]
@@ -344,11 +386,15 @@
       {
        "snippet_id": "T4",
        "quote": "in some towers",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       },
       {
        "snippet_id": "T15",
        "quote": "towers",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -361,6 +407,8 @@
       {
        "snippet_id": "T15",
        "quote": "roommate-friendly",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -373,6 +421,8 @@
       {
        "snippet_id": "T15",
        "quote": "roommate-friendly",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "roommate_friendly"
       }
      ]
@@ -385,6 +435,8 @@
       {
        "snippet_id": "T15",
        "quote": "new to the city",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -397,6 +449,8 @@
       {
        "snippet_id": "T17",
        "quote": "Brickell nightlife",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -409,6 +463,8 @@
       {
        "snippet_id": "T17",
        "quote": "networking",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -421,11 +477,15 @@
       {
        "snippet_id": "T17",
        "quote": "networking",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "networking"
       },
       {
        "snippet_id": "T17",
        "quote": "very social",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -434,6 +494,7 @@
   },
   "33133": {
    "snippet_count": 2,
+   "demo_snippet_count": 2,
    "is_demo": true,
    "tags": {
     "tree_lined_streets": {
@@ -444,6 +505,8 @@
       {
        "snippet_id": "T7",
        "quote": "Tree-lined streets",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -456,16 +519,22 @@
       {
        "snippet_id": "T7",
        "quote": "Tree-lined streets",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "tree_lined_streets"
       },
       {
        "snippet_id": "T7",
        "quote": "parks",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "parks"
       },
       {
        "snippet_id": "T8",
        "quote": "parks",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "parks"
       }
      ]
@@ -478,11 +547,15 @@
       {
        "snippet_id": "T7",
        "quote": "parks",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       },
       {
        "snippet_id": "T8",
        "quote": "parks",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -495,6 +568,8 @@
       {
        "snippet_id": "T7",
        "quote": "quieter",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -507,6 +582,8 @@
       {
        "snippet_id": "T8",
        "quote": "dog owners",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -515,6 +592,7 @@
   },
   "33134": {
    "snippet_count": 1,
+   "demo_snippet_count": 1,
    "is_demo": true,
    "tags": {
     "residential": {
@@ -525,11 +603,15 @@
       {
        "snippet_id": "T19",
        "quote": "Coral Gables feels residential",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       },
       {
        "snippet_id": "T19",
        "quote": "lots of houses",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "single_family_homes"
       }
      ]
@@ -542,6 +624,8 @@
       {
        "snippet_id": "T19",
        "quote": "lots of houses",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -554,6 +638,8 @@
       {
        "snippet_id": "T19",
        "quote": "tree-lined blocks",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -566,6 +652,8 @@
       {
        "snippet_id": "T19",
        "quote": "tree-lined blocks",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "tree_lined_streets"
       }
      ]
@@ -574,6 +662,7 @@
   },
   "33135": {
    "snippet_count": 1,
+   "demo_snippet_count": 1,
    "is_demo": true,
    "tags": {
     "community": {
@@ -584,6 +673,8 @@
       {
        "snippet_id": "T11",
        "quote": "Strong community feel",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -596,6 +687,8 @@
       {
        "snippet_id": "T11",
        "quote": "food culture",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -604,6 +697,7 @@
   },
   "33137": {
    "snippet_count": 1,
+   "demo_snippet_count": 1,
    "is_demo": true,
    "tags": {
     "arts_creative": {
@@ -614,6 +708,8 @@
       {
        "snippet_id": "T9",
        "quote": "Creative scene",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -626,6 +722,8 @@
       {
        "snippet_id": "T9",
        "quote": "good for meeting people",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -638,6 +736,8 @@
       {
        "snippet_id": "T9",
        "quote": "after moving",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -646,6 +746,7 @@
   },
   "33139": {
    "snippet_count": 2,
+   "demo_snippet_count": 2,
    "is_demo": true,
    "tags": {
     "social": {
@@ -656,6 +757,8 @@
       {
        "snippet_id": "T5",
        "quote": "Very social neighborhood",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -668,6 +771,8 @@
       {
        "snippet_id": "T5",
        "quote": "beach culture",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -680,6 +785,8 @@
       {
        "snippet_id": "T5",
        "quote": "beach culture",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "beach_culture"
       }
      ]
@@ -692,6 +799,8 @@
       {
        "snippet_id": "T5",
        "quote": "nightlife",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -700,11 +809,13 @@
   },
   "33142": {
    "snippet_count": 1,
+   "demo_snippet_count": 1,
    "is_demo": true,
    "tags": {}
   },
   "33156": {
    "snippet_count": 1,
+   "demo_snippet_count": 1,
    "is_demo": true,
    "tags": {
     "single_family_homes": {
@@ -715,6 +826,8 @@
       {
        "snippet_id": "T20",
        "quote": "single-family",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -727,11 +840,15 @@
       {
        "snippet_id": "T20",
        "quote": "single-family",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "single_family_homes"
       },
       {
        "snippet_id": "T20",
        "quote": "yards",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "yards"
       }
      ]
@@ -744,6 +861,8 @@
       {
        "snippet_id": "T20",
        "quote": "yards",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -756,6 +875,8 @@
       {
        "snippet_id": "T20",
        "quote": "suburban calm",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -764,6 +885,7 @@
   },
   "33186": {
    "snippet_count": 1,
+   "demo_snippet_count": 1,
    "is_demo": true,
    "tags": {
     "single_family_homes": {
@@ -774,6 +896,8 @@
       {
        "snippet_id": "T18",
        "quote": "single-family streets",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]
@@ -786,6 +910,8 @@
       {
        "snippet_id": "T18",
        "quote": "single-family streets",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": "single_family_homes"
       }
      ]
@@ -798,6 +924,8 @@
       {
        "snippet_id": "T18",
        "quote": "quieter",
+       "source": "kaggle_reviews",
+       "is_demo": true,
        "via": null
       }
      ]

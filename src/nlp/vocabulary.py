@@ -63,8 +63,7 @@ def slug(tag):
 
 
 def is_blocked(tag):
-    return any(part.startswith(term) for part in slug(tag).split("_")
-               for term in BLOCKED_TAG_TERMS)
+    return any(part.startswith(term) for part in slug(tag).split("_") for term in BLOCKED_TAG_TERMS)
 
 
 def _singular(name):

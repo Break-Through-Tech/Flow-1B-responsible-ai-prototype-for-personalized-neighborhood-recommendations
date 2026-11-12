@@ -8,8 +8,14 @@ import argparse
 import csv
 from collections import defaultdict
 
-from .config import (DEFAULT_SNIPPETS, LLM_CACHE, LLM_MODEL, LOCATION_TAGS,
-                     TAG_ADDITIONS_LOG, TAG_PROPOSALS)
+from .config import (
+    DEFAULT_SNIPPETS,
+    LLM_CACHE,
+    LLM_MODEL,
+    LOCATION_TAGS,
+    TAG_ADDITIONS_LOG,
+    TAG_PROPOSALS,
+)
 from .growth import load_ledger, promote, record, save_ledger
 from .sentiment import analyze
 from .tag_index import build_index, load_index, save_index, similar_zips, tags_for_zip
@@ -36,9 +42,15 @@ def load_snippets(path=DEFAULT_SNIPPETS, is_demo=True):
             if not z or not text or (z, text.lower()) in seen:
                 continue
             seen.add((z, text.lower()))
-            rows.append({"snippet_id": r.get("snippet_id", ""), "zip": z,
-                         "source": r.get("source") or "unknown", "text": text,
-                         "is_demo": is_demo})
+            rows.append(
+                {
+                    "snippet_id": r.get("snippet_id", ""),
+                    "zip": z,
+                    "source": r.get("source") or "unknown",
+                    "text": text,
+                    "is_demo": is_demo,
+                }
+            )
     return rows
 
 
@@ -49,10 +61,18 @@ def sentiment_records(snippets):
     out = []
     for s in snippets:
         a = analyze(s["text"])
-        out.append({"snippet_id": s["snippet_id"], "zip": s["zip"], "text": s["text"],
-                    "rent": a["rent"]["label"], "rent_score": a["rent"]["score"],
-                    "area": a["area"]["label"], "area_score": a["area"]["score"],
-                    "needs_review": a["needs_review"]})
+        out.append(
+            {
+                "snippet_id": s["snippet_id"],
+                "zip": s["zip"],
+                "text": s["text"],
+                "rent": a["rent"]["label"],
+                "rent_score": a["rent"]["score"],
+                "area": a["area"]["label"],
+                "area_score": a["area"]["score"],
+                "needs_review": a["needs_review"],
+            }
+        )
     return out
 
 
@@ -66,18 +86,33 @@ def internal_flags(records):
             flags[(r["zip"], "area_negative")].append(r)
         if r["needs_review"]:
             flags[(r["zip"], "needs_review")].append(r)
-    return [{"zip": z, "flag": f, "snippet_ids": [r["snippet_id"] for r in rs],
-             "texts": [r["text"] for r in rs]}
-            for (z, f), rs in sorted(flags.items())]
+    return [
+        {
+            "zip": z,
+            "flag": f,
+            "snippet_ids": [r["snippet_id"] for r in rs],
+            "texts": [r["text"] for r in rs],
+        }
+        for (z, f), rs in sorted(flags.items())
+    ]
 
 
 # ===========================================================================
 # 3. Tags -> shared location index (area by area; the tag list grows as it goes)
 # ===========================================================================
-def build_location_tags(snippets, client=None, offline=False, grow=True, backfill=True,
-                        save=True, vocab=None, cache_path=LLM_CACHE,
-                        ledger_path=TAG_PROPOSALS, log_path=TAG_ADDITIONS_LOG,
-                        progress=None):
+def build_location_tags(
+    snippets,
+    client=None,
+    offline=False,
+    grow=True,
+    backfill=True,
+    save=True,
+    vocab=None,
+    cache_path=LLM_CACHE,
+    ledger_path=TAG_PROPOSALS,
+    log_path=TAG_ADDITIONS_LOG,
+    progress=None,
+):
     vocab = vocab or load_vocabulary()
     ledger = load_ledger(ledger_path)
     zip_of = {s["snippet_id"]: s["zip"] for s in snippets}
@@ -92,8 +127,13 @@ def build_location_tags(snippets, client=None, offline=False, grow=True, backfil
     for n, (z, area) in enumerate(by_zip.items(), 1):
         if progress:
             progress(f"  tagging {z} ({n}/{len(by_zip)}, {len(area)} reviews)")
-        res = tag_snippets(area, client=client, vocab=vocab, cache_path=cache_path,
-                           offline=offline or client is None)
+        res = tag_snippets(
+            area,
+            client=client,
+            vocab=vocab,
+            cache_path=cache_path,
+            offline=offline or client is None,
+        )
         tagged.update(res["tags"])
         errors += res["errors"]
         if grow:
@@ -107,13 +147,21 @@ def build_location_tags(snippets, client=None, offline=False, grow=True, backfil
     # Backfill: re-check reviews tagged before the latest tags were added.
     backfilled = []
     if backfill and added and client is not None:
-        stale = [s for s in snippets
-                 if int(tagged.get(s["snippet_id"], {}).get("vocabulary_version", 0)) < vocab["version"]]
-        res = tag_snippets(stale, client=client, vocab=vocab, cache_path=cache_path,
-                           min_vocab_version=vocab["version"])
+        stale = [
+            s
+            for s in snippets
+            if int(tagged.get(s["snippet_id"], {}).get("vocabulary_version", 0)) < vocab["version"]
+        ]
+        res = tag_snippets(
+            stale,
+            client=client,
+            vocab=vocab,
+            cache_path=cache_path,
+            min_vocab_version=vocab["version"],
+        )
         tagged.update(res["tags"])
         errors += res["errors"]
-        record(ledger, res["proposals"], zip_of)          # counted, promoted on the next run
+        record(ledger, res["proposals"], zip_of)  # counted, promoted on the next run
         backfilled = [s["snippet_id"] for s in stale]
 
     if save and grow:
@@ -124,8 +172,14 @@ def build_location_tags(snippets, client=None, offline=False, grow=True, backfil
     index = build_index(snippets, tagged, vocab, LLM_MODEL)
     if save and tagged:
         save_index(index)
-    return index, {"tags": tagged, "errors": sorted(set(errors)), "added": added,
-                   "backfilled": backfilled, "pending": ledger, "vocab": vocab}
+    return index, {
+        "tags": tagged,
+        "errors": sorted(set(errors)),
+        "added": added,
+        "backfilled": backfilled,
+        "pending": ledger,
+        "vocab": vocab,
+    }
 
 
 # ===========================================================================
@@ -134,23 +188,46 @@ def build_location_tags(snippets, client=None, offline=False, grow=True, backfil
 def crowd_themes(zip_code, tags=None, index=None):
     z = _zip5(zip_code)
     if z is None:
-        return {"schema_version": SCHEMA_VERSION, "status": "invalid_zip",
-                "zip": str(zip_code), "tags": []}
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "invalid_zip",
+            "zip": str(zip_code),
+            "tags": [],
+        }
     if index is None:
         try:
             index = load_index()
         except FileNotFoundError:
-            return {"schema_version": SCHEMA_VERSION, "status": "not_built", "zip": z,
-                    "tags": [], "note": f"Run python -m src.nlp.pipeline to build {LOCATION_TAGS.name}."}
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "status": "not_built",
+                "zip": z,
+                "tags": [],
+                "note": f"Run python -m src.nlp.pipeline to build {LOCATION_TAGS.name}.",
+            }
     loc = index["locations"].get(z)
     names = [t for t in tags_for_zip(index, z) if not tags or t in tags]
     if not loc or not names:
-        return {"schema_version": SCHEMA_VERSION, "status": "no_evidence", "zip": z, "tags": [],
-                "note": "No review text for this ZIP; this is unknown, not negative."}
-    return {"schema_version": SCHEMA_VERSION, "status": "ok", "zip": z,
-            "is_demo": loc["is_demo"], "snippet_count": loc["snippet_count"],
-            "model": index["model"], "vocabulary_version": index["vocabulary_version"],
-            "tags": [{"tag": t, **loc["tags"][t]} for t in names]}
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "no_evidence",
+            "zip": z,
+            "tags": [],
+            "note": "No review text for this ZIP; this is unknown, not negative.",
+        }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "ok",
+        "zip": z,
+        "is_demo": loc["is_demo"],
+        "snippet_count": loc["snippet_count"],
+        "demo_snippet_count": loc.get(
+            "demo_snippet_count", loc["snippet_count"] if loc["is_demo"] else 0
+        ),
+        "model": index["model"],
+        "vocabulary_version": index["vocabulary_version"],
+        "tags": [{"tag": t, **loc["tags"][t]} for t in names],
+    }
 
 
 # ===========================================================================
@@ -166,8 +243,10 @@ def main(argv=None):
     records = sentiment_records(snippets)
     print(f"Snippets: {len(snippets)}\n\nSentiment (rent | area)")
     for r in records:
-        print(f"  {r['snippet_id']:<4} {r['zip']}  {r['rent']:<13} {r['area']:<9} "
-              f"{'REVIEW ' if r['needs_review'] else ''}{r['text'][:55]}")
+        print(
+            f"  {r['snippet_id']:<4} {r['zip']}  {r['rent']:<13} {r['area']:<9} "
+            f"{'REVIEW ' if r['needs_review'] else ''}{r['text'][:55]}"
+        )
 
     flags = internal_flags(records)
     print(f"\nInternal flags: {len(flags)}")
@@ -175,11 +254,14 @@ def main(argv=None):
         print(f"  {f['zip']}  {f['flag']:<14} {', '.join(f['snippet_ids'])}")
 
     print("\nTagging (one Gemini call per new area, can take a minute)")
-    index, result = build_location_tags(snippets, offline=args.offline,
-                                        progress=lambda m: print(m, flush=True))
+    index, result = build_location_tags(
+        snippets, offline=args.offline, progress=lambda m: print(m, flush=True)
+    )
     vocab = result["vocab"]
-    print(f"\nTags: {len(result['tags'])}/{len(snippets)} reviews tagged "
-          f"| tag list v{vocab['version']}, {len(vocab['tags'])} tags")
+    print(
+        f"\nTags: {len(result['tags'])}/{len(snippets)} reviews tagged "
+        f"| tag list v{vocab['version']}, {len(vocab['tags'])} tags"
+    )
     for e in result["errors"]:
         print(f"  note: {e}")
     for z in index["locations"]:
@@ -193,7 +275,9 @@ def main(argv=None):
         print(f"Re-checked with new tags: {len(result['backfilled'])} reviews")
     pending = {t: len(e["snippet_ids"]) for t, e in result["pending"].items()}
     if pending:
-        print(f"Pending (need more reviews): {', '.join(f'{t} ({n})' for t, n in sorted(pending.items()))}")
+        print(
+            f"Pending (need more reviews): {', '.join(f'{t} ({n})' for t, n in sorted(pending.items()))}"
+        )
 
     if index["locations"]:
         z = next(iter(index["locations"]))

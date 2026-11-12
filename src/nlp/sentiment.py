@@ -9,8 +9,14 @@ Clauses about safety/crime are skipped and marked needs_review.
 
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-from .config import (AREA_LEXICON, NEGATIVE_AT, POSITIVE_AT, RENT_KEYWORDS,
-                     RENT_LEXICON, SENSITIVE_TERMS)
+from .config import (
+    AREA_LEXICON,
+    NEGATIVE_AT,
+    POSITIVE_AT,
+    RENT_KEYWORDS,
+    RENT_LEXICON,
+    SENSITIVE_TERMS,
+)
 from .text_rules import find_terms, normalize, split_clauses
 
 
@@ -43,15 +49,29 @@ def score_clauses(text):
     out = []
     for clause in split_clauses(normalize(text)):
         if find_terms(clause, SENSITIVE_TERMS):
-            out.append({"clause": clause, "aspect": "needs_review", "score": None,
-                        "label": None, "keywords": []})
+            out.append(
+                {
+                    "clause": clause,
+                    "aspect": "needs_review",
+                    "score": None,
+                    "label": None,
+                    "keywords": [],
+                }
+            )
             continue
         rent_hits = find_terms(clause, RENT_KEYWORDS)
         aspect = "rent" if rent_hits else "area"
         analyzer = _RENT if rent_hits else _AREA
         score = analyzer.polarity_scores(clause)["compound"]
-        out.append({"clause": clause, "aspect": aspect, "score": round(score, 3),
-                    "label": label(score), "keywords": sorted({t for t, _, _ in rent_hits})})
+        out.append(
+            {
+                "clause": clause,
+                "aspect": aspect,
+                "score": round(score, 3),
+                "label": label(score),
+                "keywords": sorted({t for t, _, _ in rent_hits}),
+            }
+        )
     return out
 
 
@@ -72,8 +92,10 @@ def combine(labels):
 def analyze(text):
     """{"rent": {...}, "area": {...}, "needs_review": bool, "clauses": [...]}"""
     clauses = score_clauses(text)
-    result = {"clauses": clauses,
-              "needs_review": any(c["aspect"] == "needs_review" for c in clauses)}
+    result = {
+        "clauses": clauses,
+        "needs_review": any(c["aspect"] == "needs_review" for c in clauses),
+    }
     for aspect in ("rent", "area"):
         cs = [c for c in clauses if c["aspect"] == aspect]
         scores = [c["score"] for c in cs]

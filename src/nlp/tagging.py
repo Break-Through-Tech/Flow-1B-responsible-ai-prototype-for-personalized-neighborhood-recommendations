@@ -14,8 +14,14 @@ import re
 
 from .config import LLM_BATCH_SIZE, LLM_CACHE, LLM_MODEL, LLM_TEMPERATURE, REPO_ROOT
 from .text_rules import normalize
-from .vocabulary import (find_existing, format_for_prompt, is_blocked, load_vocabulary,
-                         parent_of, slug)
+from .vocabulary import (
+    find_existing,
+    format_for_prompt,
+    is_blocked,
+    load_vocabulary,
+    parent_of,
+    slug,
+)
 
 
 class TaggingError(Exception):
@@ -25,7 +31,7 @@ class TaggingError(Exception):
 # ===========================================================================
 # 1. Prompt
 # ===========================================================================
-PROMPT_VERSION = "3"   # bump when the prompt changes; old cache entries are then ignored
+PROMPT_VERSION = "3"  # bump when the prompt changes; old cache entries are then ignored
 
 PROMPT = """You tag short reviews of Miami neighborhoods.
 
@@ -62,8 +68,9 @@ Return only JSON in this shape:
 
 def build_prompt(batch, vocab):
     tags = format_for_prompt(vocab)
-    items = json.dumps([{"id": s["snippet_id"], "text": s["text"]} for s in batch],
-                       ensure_ascii=False)
+    items = json.dumps(
+        [{"id": s["snippet_id"], "text": s["text"]} for s in batch], ensure_ascii=False
+    )
     return PROMPT.format(tags=tags, items=items)
 
 
@@ -86,6 +93,7 @@ class GeminiClient:
         if not key:
             raise TaggingError("GEMINI_API_KEY is not set (env var or .env file).")
         from google import genai
+
         self._client = genai.Client(api_key=key)
         self.model = model
 
@@ -93,8 +101,7 @@ class GeminiClient:
         resp = self._client.models.generate_content(
             model=self.model,
             contents=prompt,
-            config={"temperature": LLM_TEMPERATURE,
-                    "response_mime_type": "application/json"},
+            config={"temperature": LLM_TEMPERATURE, "response_mime_type": "application/json"},
         )
         return resp.text
 
@@ -121,7 +128,7 @@ def _proposal(p, vocab):
         return None
     parent = slug(p.get("parent") or "") or None
     if parent and parent in vocab["tags"]:
-        parent = parent_of(vocab, parent) or parent      # always attach to a top-level tag
+        parent = parent_of(vocab, parent) or parent  # always attach to a top-level tag
     else:
         parent = None
     return {"tag": name, "parent": parent, "description": str(p.get("description") or "")[:120]}
@@ -148,9 +155,14 @@ def parse_response(raw, batch, vocab):
             evidence = (t.get("evidence") if isinstance(t, dict) else "") or ""
             if name in vocab["tags"]:
                 if name not in {x["tag"] for x in tags}:
-                    tags.append({"tag": name, "evidence": evidence,
-                                 "evidence_found": bool(evidence) and
-                                 normalize(evidence) in normalize(texts[sid])})
+                    tags.append(
+                        {
+                            "tag": name,
+                            "evidence": evidence,
+                            "evidence_found": bool(evidence)
+                            and normalize(evidence) in normalize(texts[sid]),
+                        }
+                    )
             else:
                 raw_props.append({"tag": name})
         proposed, seen = [], set()
@@ -188,8 +200,15 @@ def save_cache(cache, path=LLM_CACHE):
 # ===========================================================================
 # 5. Entry point
 # ===========================================================================
-def tag_snippets(snippets, client=None, vocab=None, model=LLM_MODEL,
-                 cache_path=LLM_CACHE, offline=False, min_vocab_version=None):
+def tag_snippets(
+    snippets,
+    client=None,
+    vocab=None,
+    model=LLM_MODEL,
+    cache_path=LLM_CACHE,
+    offline=False,
+    min_vocab_version=None,
+):
     """Tag snippets, using the cache first.
 
     min_vocab_version: re-tag cached entries made with an older tag list (backfill).
@@ -201,8 +220,11 @@ def tag_snippets(snippets, client=None, vocab=None, model=LLM_MODEL,
     tagged, todo = {}, []
     for s in snippets:
         hit = cache.get(cache_key(s["text"], model))
-        stale = (hit and min_vocab_version is not None
-                 and int(hit.get("vocabulary_version", 0)) < int(min_vocab_version))
+        stale = (
+            hit
+            and min_vocab_version is not None
+            and int(hit.get("vocabulary_version", 0)) < int(min_vocab_version)
+        )
         if hit and (not stale or offline):
             tagged[s["snippet_id"]] = hit
         else:
@@ -215,17 +237,20 @@ def tag_snippets(snippets, client=None, vocab=None, model=LLM_MODEL,
             errors.append("GEMINI_API_KEY not set; only cached tags used.")
         else:
             for i in range(0, len(todo), LLM_BATCH_SIZE):
-                batch = todo[i:i + LLM_BATCH_SIZE]
+                batch = todo[i : i + LLM_BATCH_SIZE]
                 try:
                     parsed = parse_response(client(build_prompt(batch, vocab)), batch, vocab)
-                except Exception as e:  # API/network/format problems: keep going
+                except Exception as e:  # noqa: BLE001 - API/network/format problems are recorded; keep going
                     errors.append(f"batch {i // LLM_BATCH_SIZE}: {e}")
                     continue
                 for s in batch:
                     if s["snippet_id"] in parsed:
-                        entry = {**parsed[s["snippet_id"]], "model": model,
-                                 "vocabulary_version": vocab["version"],
-                                 "prompt_version": PROMPT_VERSION}
+                        entry = {
+                            **parsed[s["snippet_id"]],
+                            "model": model,
+                            "vocabulary_version": vocab["version"],
+                            "prompt_version": PROMPT_VERSION,
+                        }
                         cache[cache_key(s["text"], model)] = entry
                         tagged[s["snippet_id"]] = entry
                         proposals += [(s["snippet_id"], p) for p in entry["proposed"]]
