@@ -1,5 +1,20 @@
 # MCP Server Setup
 
+## Implemented in this repository
+
+`crowd_themes`, `crowd_themes`, `recommend` and `ethics` are implemented in `flow_neighborhoods.mcp_server`.
+Install with `pip install -e ".[mcp]"`, then let your MCP client launch
+`python -m flow_neighborhoods.mcp_server --data-dir <absolute-path-to-data>`.
+The server speaks stdio and waits for a client; running it alone does not display
+recommendations. See [the team's complete setup guide](docs/mcp_tools.md) for a
+client configuration, JSON contracts, error handling and protocol tests.
+
+The remaining two tools, `schema` and `area_stats`, are planned interfaces. The advisor example later
+in this document belongs to a separate repository. The policy tool alone does not
+enforce refusals; the agent must implement a pre-dispatch policy gate.
+
+---
+
 An **MCP server** lets your AI agent call your recommender and data functions directly — instead of guessing answers.
 
 Think of it like a waiter who can only bring items from the kitchen menu. If it's not on the menu (your tools), the agent shouldn't serve it.

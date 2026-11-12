@@ -72,12 +72,30 @@ Full details: [Challenge-Project-Overview.md](Challenge-Project-Overview.md)
 
 ## Get started locally
 
+### Recommendation baseline (implemented October 11)
+
+The offline Python engine now filters prepared data by budget, ranks ZIPs by how well
+they match the requested priorities, and attaches labeled demo-text evidence. See
+[run instructions, contracts, tests, and measured results](docs/recommender_baseline.md).
+The first baseline passes budget checks but has low relevance on the supplied fixtures;
+it is ready for error analysis and integration work.
+
+### MCP tools: crowd_themes, recommend and ethics
+
+The team now has one SDK 2.x stdio MCP server for `crowd_themes`, `recommend` and
+`ethics`, following Om's module-per-tool pattern. It delegates ranking to the
+existing engine and returns structured JSON, readable tool errors and
+the original warnings. No Gemini key is needed. `ethics` describes policy; an agent
+must still enforce prohibited-request refusals before calling `recommend`.
+See [setup, tool contracts, tests, and integration limits](docs/mcp_tools.md).
+
 ```bash
-git clone https://github.com/Break-Through-Tech/Flow-Responsible_AI_Neighborhood_Recommendation.git
-cd Flow-Responsible_AI_Neighborhood_Recommendation
+git clone https://github.com/Break-Through-Tech/Flow-1B-responsible-ai-prototype-for-personalized-neighborhood-recommendations.git
+cd Flow-1B-responsible-ai-prototype-for-personalized-neighborhood-recommendations
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+pip install -e ".[mcp]"
 ```
 
 Starter data is in [`data/`](data/). Key fields:
