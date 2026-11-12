@@ -62,6 +62,31 @@ Name-to-ZIP dictionary for `near` requests. One row per (alias, zip); a name can
 | match | `primary`: the place is in this ZIP. `secondary`: the ZIP also touches it; used only when the name has no primary match |
 | source | `area_features.csv area_name` (advisor's starter labels), `USPS city, ZIP Code Business Patterns 2021`, or Joana's `area-name.csv` |
 
+## rents_hud.csv
+
+HUD Small Area Fair Market Rents per ZIP and unit size, from Joana's `data/raw/new/HUD-SAFMR.csv` (the 2026 release, confirmed by Joana on PR #22). **The budget filter compares against these** for the census feature set (`rent_basis="hud"`): living alone → `one_bedroom`, with a co-leaser → `two_bedroom`, co-living → `efficiency` as a stand-in for per-bedroom rent. These are benchmarks, not asking rents; where Zillow's August 2026 asking rents exist (29 ZIPs) they are a median 17% higher. ZIPs where the ACS finds no rental market (33101 PO boxes, 33039 air reserve base) stay excluded even though HUD lists them.
+
+| Column | Description |
+|--------|-------------|
+| zip | 5-digit ZIP |
+| efficiency, one_bedroom, two_bedroom, three_bedroom, four_bedroom | Monthly rent benchmark, USD |
+| source | Provenance |
+
+## co_living_listings.csv
+
+Hand-curated co-living properties. A property qualifies when it rents a private bedroom with shared living space: the advisor's rule (private bedroom in a shared apartment), widened by Om on Nov 11 to include shared houses. Each property is counted once across listing sites, and ZIPs are confirmed with the Census geocoder. With the census feature set, co-living requests only consider ZIPs with a listed property, and the budget is compared with the lowest per-bedroom "from" price. Prices change and may reflect specials; record `observed` and `sources` when updating.
+
+| Column | Description |
+|--------|-------------|
+| property | Property name (unique) |
+| zip | 5-digit ZIP |
+| type | `building` or `shared_house` |
+| per_bedroom_rent_from, per_bedroom_rent_to | Monthly per-bedroom rent range, USD (`to` may be blank) |
+| observed | Date the prices were checked |
+| sources | Listing sites or pages used |
+| confidence | `high` (own site confirms), `medium` (listing sites or guides only) |
+| notes | Fees, specials, unit types |
+
 ## zip_area_names.csv
 
 Display names per ZCTA, from Joana's `data/raw/new/area-name.csv` (USPS City State Product; Census 2020 ZCTA-to-Place relationship). Shown as `neighborhood` / `other_areas` in results; `area_name` (starter label) is unchanged. Covers all 80 snapshot ZIPs, including the 24 that the starter data labels "ZCTA5 xxxxx".

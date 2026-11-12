@@ -2,6 +2,8 @@
 
 October 28, 2026 · Om Patel · [PR #17](https://github.com/Break-Through-Tech/Flow-1B-responsible-ai-prototype-for-personalized-neighborhood-recommendations/pull/17)
 
+> **Current status (November 12):** with the advisor's 2026-realistic budgets and P3 update, the five original profiles score P@3 0.53, MRR 0.82, budget compliance 100% under neighborhood scoring (not directly comparable with the earlier ZIP-label scores; see "Comparing scores"). The independently generated held-out set scored P@3 0.23, MRR 0.55 once, before advisor review; co-living listings were added after that run.
+
 ## Summary
 
 The lifestyle scores that shipped with the challenge data were placeholders. `build_features.py` derives them from ZIP population and rent, which is why Precision@3 was 0.13. The engine now ranks on **measured** data by default:
@@ -64,6 +66,8 @@ The starter features stay available with `feature_set="provided"` for comparison
 - **Noise fixes a real error.** Under the density + nightlife definition, ZIP 33122, next to Miami International Airport, ranked among the 5 quietest, even though 76% of its land is above 55 dB.
 - **Caveat:** five team-written profiles cannot show generalization. Each tag is tested by only 1–3 profiles.
 
+**Comparing scores:** neighborhood scoring is easier to satisfy than the original ZIP labels. Coral Gables maps to 8 ZIPs, 4 ZIPs count for more than one neighborhood, and P4's relevant set grows to 9 ZIPs. Before/after numbers across the scoring change are not directly comparable; `zip_label_precision` keeps the original basis.
+
 ## How decisions were made
 
 Each open choice was tested with and without the change (`experiments/feature_candidates/decisions.py`). The rule was fixed before running: **adopt a change only if MRR rises ≥ 0.02 and no profile gets worse. Otherwise it's a tie, broken by the fairer option (no resident-demographic proxies), then the simpler one.**
@@ -108,13 +112,40 @@ Two data-quality points:
 - The starter label for **33131 is "South Beach"**, but 33131 is Brickell / Brickell Key (South Beach is 33139). 28 ZIPs differ between the starter labels and the sourced names.
 - **Our rents look out of date.** The engine filters on the ACS 2018–22 median gross rent. Downtown is $1,191 there, versus a HUD 1-bedroom benchmark of $1,750 and an August 2026 Zillow rent of $2,799. Some recommendations may be unaffordable in practice.
 
-## Questions for you
+## Advisor feedback (November 9) and actions
 
-1. **Test profiles:** how did you choose the expected ZIPs (local knowledge, data, or both)? Could you write more, including suburban and conflicting-priority cases, or should we write a held-out set that you review? Each tag is currently tested by only 1–3 profiles.
-2. **P4 (quiet + pets):** what did "quiet" mean when you chose Coconut Grove, Coral Gables and Pinecrest: low noise, or settled residential with greenery? With noise data they rank 11th, 31st and 14th, behind quieter outer ZIPs.
-3. **`co_living_friendly`:** how did you build it? It ranks your three anchor ZIPs highest (Wynwood 0.92, Brickell 0.90, Downtown 0.88), and 18 ZIPs share exactly 0.55 or 0.15. P3 passes even without it, so it isn't inflating results, but we'd like to document its source. Same question for `single_family_friendly` (unused, because of the familial-status risk).
-4. Is a Streamlit demo expected for the final presentation?
-5. **Rent basis:** the budget filter uses ACS 2018–22 median rent, which is far below 2026 rents. Should we switch to HUD benchmarks by unit size? The profiles' budgets seem to assume the older rents: P4 would have only 9 affordable ZIPs left.
+| Feedback | Action | Status |
+|---|---|---|
+| **Test profiles:** score by neighborhood; one neighborhood spans several residential ZIPs | `eval/neighborhood_zips.json` holds the advisor's table; profiles gain `expected_neighborhoods`; `evaluate` counts a result as relevant when its ZIP is in an expected neighborhood, adds `neighborhood_coverage`, and keeps `zip_label_precision` for comparison. Downtown (not in the table) keeps 33128. No residential addresses are available, so shared ZIPs (33129, 33133, 33143, 33156) count for each listed neighborhood. | Done. Current engine (HUD rents, co-living listings): P@3 0.33, MRR 0.80; P4 still 0 at its $2,200 budget. |
+| **Held-out set for review** | `eval/heldout_profiles_draft.json`: 8 profiles, expected neighborhoods written **before** running the engine. Not evaluated until the advisor approves them. A second set, `eval/heldout_profiles_generated.json` (10 profiles), was written by a separate model given only the profile format and the six neighborhood names, with no access to the engine, data or results. Its co-living profile (G6) also expects Downtown/Brickell, which conflicts with the listing rule. | Awaiting review |
+| **"Quiet" = residential character** (quiet residential streets, suburban feel); noise is a separate measure | New `low_noise` tag (transportation noise). The first test of building-type candidates was invalid: at $2,200 P4 can afford no ZIP in its neighborhoods under HUD rents, so no definition could help. Rerun as a ranking-only comparison at a $3,300 development budget (P4 unchanged): **single-family-home share** reaches P@3 0.33 and ranks an expected ZIP 2nd (RR 0.50), versus 0.00 and 8th for noise (`experiments/feature_candidates/quiet_residential.py`). `quiet` still uses noise as a labeled stand-in; single-family share is the leading candidate, pending the advisor's sentiment source. Requesting `quiet` and `low_noise` together no longer counts noise twice. | Partial |
+| **Rent:** 2026 asking rents by comparable unit size; flag profiles | Zillow Aug-2026 asking rents cover only 29 of 80 ZIPs and have no unit sizes. HUD rents cover all ZIPs by unit size but are benchmarks (vintage unstated), and Zillow is a median 17% higher. Budget flags at 2026 rents (living alone → 1-bedroom, co-leasers → 2-bedroom): **P4 ($2,200) has no affordable expected ZIP** (cheapest HUD 2-bedroom $2,510). P1, P2 and P3 keep only Wynwood 33127 and Downtown. At Zillow asking rents, no profile except P5 has an affordable expected ZIP. | **HUD adopted** (Nov 9). Census features now filter on HUD rent by unit size (`rents_hud.csv`). With neighborhood scoring: P@3 0.53 → 0.33, MRR 0.72 → 0.80, coverage@3 0.67 → 0.43, budget compliance 100%. Fewer ZIPs are affordable: P4 has 9 eligible ZIPs, none in its neighborhoods; Brickell drops out for P1–P3. Budgets need updating. |
+| **Co-living:** listings with a private bedroom in a shared apartment; per-bedroom rent; count each property once | Curated `data/co_living_listings.csv`: one row per property with sources, date checked and confidence; co-living requests only consider ZIPs with a listed property and compare the budget with its per-bedroom rent. | **Implemented and expanded** (Nov 11): `data/co_living_listings.csv` now has 9 properties, with each address's ZIP checked by the Census geocoder: 6 buildings (Flow Wynwood, i5 Wynwood, AERIE and Otto in Downtown 33128, Plum, Aventura Coliving) and 3 shared houses (Ambitious Coliving in South Beach, The Coliving Co in Little Havana, a Fllat house in Coconut Grove). The Coliving Co's address comes from an AI summary and is not confirmed by a listing, so it is marked `low` confidence. Om widened the rule to include shared houses. P3 now gets Downtown first (P@3 0.33). No verified co-living exists in Brickell. Roomurs, PadSplit and Etico are pending addresses or prices. |
+
+## Advisor answers (November 12) and actions
+
+| Answer | Action |
+|---|---|
+| **Budgets:** nothing in Miami rents below about $2,500; set each profile's budget within the lowest-to-highest rents of its neighborhood group | Each original profile's budget is now the median 2026 rent for its unit size across its expected-neighborhood ZIPs (HUD; per-bedroom listing rent for co-living), rounded up to $100 and kept inside that range. P1 $2,500 → $3,000, P2 $2,000 → $2,500, P3 $1,800 → $1,300 (co-living rooms, $1,175–$1,750), P4 $2,200 → $3,000, P5 unchanged at $3,000. Each change is recorded in a `budget_note`. |
+| **P3:** if no Brickell/Downtown roommate examples, adjust toward Wynwood | Downtown has verified co-living (AERIE, Otto) and Brickell has none, so P3 now expects **Downtown and Wynwood**. |
+| **Held-out set:** include suburbs and why people move there; recommend beyond what users think they need | Kendall, West Kendall and Doral added to `eval/neighborhood_zips.json` (proposed ZIPs from Joana's area names plus the starter labels). Three suburb profiles (H9–H11) added to the draft, written before running the engine, each with a place-based reason people move there. A "you might also like" recommendation is the next feature. |
+| **Data refresh:** approved, with Google or similar qualitative reviews | Monthly reviewed refresh is in scope. Google's terms prohibit scraping, and the Places API limits reviews and storage, so review text should come from permitted sources (e.g. the Kaggle reviews dataset named in the challenge brief) through Nadia's NLP. |
+
+**Results with 2026-realistic budgets** (original five profiles, neighborhood scoring): P@3 0.53, P@5 0.32, MRR 0.82, coverage@3 0.67, budget compliance 100%. P1, P2, P3 and P5 each get 2 expected ZIPs in their top 3; P4 (quiet) still misses, pending a residential-character measure.
+
+## Decisions made (November 11)
+
+- **Rent:** budgets use HUD Small Area Fair Market Rents by unit size (1-bedroom solo, 2-bedroom co-leasers), because ZIP-level asking rents by bedroom are not publicly available. HUD runs low: Flow Wynwood studios start at $2,143 versus HUD's $1,570 studio benchmark for 33127.
+- **Co-living:** any private room with shared living space counts, including shared houses. `data/co_living_listings.csv` lists 9 properties with Census-confirmed ZIPs: Wynwood (Flow Wynwood, i5 Wynwood), Downtown 33128 (AERIE, Otto), Overtown (Plum), Little Havana (The Coliving Co), Coconut Grove (a Fllat house), South Beach (Ambitious Coliving) and Aventura (Aventura Coliving). No verified co-living exists in Brickell. Roomurs (address unclear), PadSplit and Etico (no addresses) are pending.
+- **Held-out sets:** two sets await your review and have not been scored for reporting: our draft (8 profiles) and an independently generated set (10 profiles, written by a separate model with no access to the engine or data).
+
+## Final questions for Karla (November 11)
+
+1. **Budgets at 2026 rents:** P4's $2,200 cannot afford any Coconut Grove, Coral Gables or Pinecrest two-bedroom (cheapest about $2,510), and P1-P3 lose Brickell. Should we raise these budgets, or retire the original five profiles in favor of a 2026 set?
+2. **P3 (co-living):** Downtown now matches (AERIE and Otto in 33128), but no Brickell co-living listing could be verified. Should P3 still expect Brickell? Could you share the listing list you used, so we can compare with ours?
+3. **"Quiet" (P4):** you based this on sentiment analysis of how people describe neighborhoods. Could you share that data or method? Building and density measures do not capture "quiet residential streets"; until then `quiet` uses transportation noise as a stand-in.
+4. **Held-out sets:** could you review the expected neighborhoods in both sets before we score them? Should they include suburbs such as Kendall or Doral, and if so with which ZIPs?
+5. **Data refresh:** is a monthly scheduled refresh from public sources (Zillow rent index, HUD, the transit schedule), reviewed before use, within the "public snapshots" rule?
 
 ## Run it
 
@@ -123,7 +154,7 @@ Two data-quality points:
 .venv/Scripts/python.exe -m flow_neighborhoods.evaluate                      # measured features (default)
 .venv/Scripts/python.exe experiments/feature_candidates/compare.py           # starter vs measured, mean vs cosine
 .venv/Scripts/python.exe experiments/feature_candidates/decisions.py         # include/exclude tests
-.venv/Scripts/python.exe -m pytest -q                                        # 55 tests
+.venv/Scripts/python.exe -m pytest -q                                        # 137 tests
 ```
 
 Rebuilding the data files needs the raw Census downloads (URLs in `docs/HANDOFF.md`) and `experiments/feature_candidates/noise.py`, which caches about 3 MB of noise-map tiles and ZIP boundaries.

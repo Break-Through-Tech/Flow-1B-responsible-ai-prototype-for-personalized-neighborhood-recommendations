@@ -70,6 +70,30 @@ def data_dir(tmp_path):
         [{"alias": "Test Town", "zip": "00001", "match": "primary", "source": "test"}],
     )
     write(
+        "rents_hud.csv",
+        [
+            "zip",
+            "efficiency",
+            "one_bedroom",
+            "two_bedroom",
+            "three_bedroom",
+            "four_bedroom",
+            "source",
+        ],
+        [
+            {
+                "zip": z,
+                "efficiency": r,
+                "one_bedroom": r,
+                "two_bedroom": r,
+                "three_bedroom": r,
+                "four_bedroom": r,
+                "source": "test",
+            }
+            for z, r in (("00001", 1500), ("00002", 1501))
+        ],
+    )
+    write(
         "census_features.csv",
         [
             "zip",
@@ -219,9 +243,7 @@ def test_stdio_discovery_and_all_repository_profiles(tmp_path, scorer):
                     args["k"] = k
                     actual = payload(await client.call_tool("recommend", args))
                     assert actual == engine.recommend(args)
-                    assert all(
-                        0 < r["median_rent_usd"] <= args["budget_max"] for r in actual["results"]
-                    )
+                    assert all(0 < r["rent_usd"] <= args["budget_max"] for r in actual["results"])
 
     asyncio.run(scenario())
 

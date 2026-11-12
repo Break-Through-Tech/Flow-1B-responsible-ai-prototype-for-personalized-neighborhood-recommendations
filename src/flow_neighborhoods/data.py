@@ -7,7 +7,7 @@ import math
 import re
 from pathlib import Path
 
-from .contracts import ALL_FEATURES
+from .contracts import ALL_FEATURES, OPTIONAL_FEATURES
 
 
 class DataError(ValueError):
@@ -67,6 +67,8 @@ def load_snapshot(directory: Path) -> tuple[list[dict], dict[str, list[dict]], d
             if value is not None and not 0 <= value <= 1:
                 raise DataError(f"{area['zip']}: {feature} must be between 0 and 1.")
             area[feature] = value
+        for feature in OPTIONAL_FEATURES:
+            area[feature] = None
         rent = number(area["median_rent_usd"])
         area["median_rent_usd"] = rent if rent is not None and rent > 0 else None
     snippets = read_rows(paths[2], {"snippet_id", "zip", "source", "theme", "text"})
@@ -179,6 +181,61 @@ def load_places(directory: Path) -> tuple[dict, dict, dict]:
     return geography, aliases, {path.name: digest(path) for path in paths}
 
 
+RENT_UNITS = ("efficiency", "one_bedroom", "two_bedroom", "three_bedroom", "four_bedroom")
+
+
+def load_rents(directory: Path) -> tuple[dict[str, dict[str, float | None]], dict]:
+    """HUD Small Area Fair Market Rents per ZIP and unit size (benchmarks, not asking rents)."""
+    path = directory / "rents_hud.csv"
+    if not path.exists():
+        raise DataError("The HUD rent basis needs rents_hud.csv.")
+    rents = {}
+    for z, row in unique(read_rows(path, {"zip", *RENT_UNITS, "source"}), "zip").items():
+        values = {unit: number(row[unit]) for unit in RENT_UNITS}
+        if any(v is not None and v <= 0 for v in values.values()):
+            raise DataError(f"rents_hud.csv: non-positive rent for {z}.")
+        rents[z] = values
+    return rents, {path.name: digest(path)}
+
+
+def load_co_living(directory: Path) -> tuple[dict[str, list[dict]], dict]:
+    """Co-living properties (private bedroom in a shared apartment), one row per property.
+
+    Optional: returns empty when the curated file is absent.
+    """
+    path = directory / "co_living_listings.csv"
+    if not path.exists():
+        return {}, {}
+    required = {
+        "property",
+        "zip",
+        "per_bedroom_rent_from",
+        "per_bedroom_rent_to",
+        "observed",
+        "sources",
+    }
+    listings, seen = {}, set()
+    for row in read_rows(path, required):
+        low, high = number(row["per_bedroom_rent_from"]), number(row["per_bedroom_rent_to"])
+        name = normalize_name(row["property"])
+        if not name or name in seen or not row["sources"].strip():
+            raise DataError("co_living_listings.csv: properties must be named, unique and sourced.")
+        if low is None or low <= 0 or (high is not None and high < low):
+            raise DataError(
+                f"co_living_listings.csv: invalid per-bedroom rent for {row['property']}."
+            )
+        seen.add(name)
+        listings.setdefault(row["zip"], []).append(
+            {
+                "property": row["property"].strip(),
+                "per_bedroom_rent_from": low,
+                "per_bedroom_rent_to": high,
+                "observed": row["observed"].strip(),
+            }
+        )
+    return listings, {path.name: digest(path)}
+
+
 def apply_census(directory: Path, areas: list[dict], geography: dict) -> dict:
     """Replace the placeholder lifestyle scores with measured ones (percentiles).
 
@@ -221,7 +278,11 @@ def apply_census(directory: Path, areas: list[dict], geography: dict) -> dict:
             transit=pct["transit_commute_share"][z],
             social=pct["food_drink_per_sqmi"][z],
             walkable=pct["walk_commute_share"][z],
+            # Advisor: quiet means residential character; transportation noise is its own
+            # low_noise measure. Until a residential-character signal exists (review
+            # sentiment or tree canopy), quiet uses the noise measure as a stand-in.
             quiet=None if loud is None else 1 - loud,
+            low_noise=None if loud is None else 1 - loud,
             measures=measures[z],
         )
     return {path.name: digest(path)}

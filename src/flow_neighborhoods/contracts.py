@@ -5,7 +5,10 @@ from dataclasses import dataclass
 
 FEATURES = ("transit", "social", "quiet", "pet_friendly", "walkable")
 ALL_FEATURES = (*FEATURES, "co_living_friendly")
-TAGS = (*FEATURES, "co_living")
+# Only in the census feature set; joins the vector only when requested, so the
+# cosine baseline's fixed dimensions are unchanged for other requests.
+OPTIONAL_FEATURES = ("low_noise",)
+TAGS = (*FEATURES, *OPTIONAL_FEATURES, "co_living")
 # 1 = nice to have, 2 = important, 3 = top priority. Unweighted tags count as 1.
 PRIORITIES = (1, 2, 3)
 MAX_NEAR = 3
@@ -90,7 +93,11 @@ class Request:
         return None
 
     def vector(self) -> tuple[tuple[str, ...], tuple[float, ...]]:
-        features = ALL_FEATURES if self.housing_preference == "co_living" else FEATURES
+        features = (
+            *FEATURES,
+            *(f for f in OPTIONAL_FEATURES if f in self.tags),
+            *(("co_living_friendly",) if self.housing_preference == "co_living" else ()),
+        )
         values = tuple(
             float(self.weight("co_living"))
             if f == "co_living_friendly"
