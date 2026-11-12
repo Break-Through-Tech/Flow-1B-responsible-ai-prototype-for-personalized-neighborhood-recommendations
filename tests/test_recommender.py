@@ -594,12 +594,19 @@ def test_repository_profiles_name_known_neighborhoods():
         assert set(profile["expected_relevant_zips"]) <= named
 
 
-def test_heldout_draft_is_valid_but_not_evaluated_here():
-    # Structure only: the advisor reviews expected matches before anyone scores this set.
+@pytest.mark.parametrize(
+    "name, status",
+    [
+        ("heldout_profiles_draft.json", "draft_for_advisor_review"),
+        ("heldout_profiles_generated.json", "generated_pending_advisor_review"),
+    ],
+)
+def test_heldout_sets_are_valid_but_not_evaluated_here(name, status):
+    # Structure only: the advisor reviews expected matches before anyone scores these sets.
     root = Path(__file__).resolve().parents[1]
-    draft = json.loads((root / "eval/heldout_profiles_draft.json").read_text())
+    draft = json.loads((root / "eval" / name).read_text())
     mapping = json.loads((root / "eval/neighborhood_zips.json").read_text())["neighborhoods"]
-    assert draft["status"] == "draft_for_advisor_review"
+    assert draft["status"] == status
     keys = ("budget_max", "household", "housing_preference", "tags", "weights", "near")
     for profile in draft["profiles"]:
         Request.parse({k: profile[k] for k in keys if k in profile})

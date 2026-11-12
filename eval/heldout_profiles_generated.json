@@ -1,0 +1,119 @@
+{
+  "status": "generated_pending_advisor_review",
+  "note": "Written by a separate model (Claude Sonnet subagent) given only the profile format, allowed values and the advisor's six neighborhood names. It did not see the engine, data, results or existing profiles, and was told not to read the repository. Budgets reflect its own sense of 2026 Miami rents. Do not tune against this set; score it once, after the advisor reviews the expected neighborhoods.",
+  "generated": "2026-11-11",
+  "profiles": [
+    {
+      "profile_id": "G1_budget_grad_transit",
+      "description": "Recent grad starting first job downtown, no car, wants an easy commute by Metrorail/Metromover and a social scene.",
+      "budget_max": 2600,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": ["transit", "social", "walkable"],
+      "expected_neighborhoods": ["Downtown", "Brickell"],
+      "not_relevant_neighborhoods": ["Pinecrest", "Coral Gables"],
+      "rationale": "Downtown and Brickell have Metrorail/Metromover and dense nightlife, and 1BRs near $2,500 to $2,600 are plausible there, while Pinecrest is car-dependent and pricier."
+    },
+    {
+      "profile_id": "G2_family_quiet_pets",
+      "description": "Couple with a dog wanting quiet tree-lined streets, a yard-like feel and good parks, car is fine.",
+      "budget_max": 5200,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": ["quiet", "pet_friendly", "low_noise"],
+      "expected_neighborhoods": ["Pinecrest", "Coral Gables"],
+      "not_relevant_neighborhoods": ["Downtown", "Wynwood"],
+      "rationale": "Pinecrest and Coral Gables are leafy, suburban and calm, while Downtown and Wynwood are loud and dense."
+    },
+    {
+      "profile_id": "G3_walkable_but_quiet",
+      "description": "Remote worker who wants to walk to cafes and groceries but wants a calm street to sleep on.",
+      "budget_max": 3400,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": ["walkable", "quiet"],
+      "expected_neighborhoods": ["Coconut Grove", "Coral Gables"],
+      "not_relevant_neighborhoods": ["Downtown", "Wynwood"],
+      "rationale": "The Grove and the Gables center offer walkable village streets with calm residential surroundings, unlike the nightlife-heavy core."
+    },
+    {
+      "profile_id": "G4_tight_budget_alone",
+      "description": "Service worker on a tight budget needing the cheapest reasonable one-bedroom with some transit access.",
+      "budget_max": 1900,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": ["transit"],
+      "expected_neighborhoods": ["Downtown"],
+      "not_relevant_neighborhoods": ["Pinecrest", "Coconut Grove"],
+      "rationale": "Downtown has the most older, lower-priced 1BR stock with Metromover/Metrorail access, while Pinecrest and the Grove are well above a $1,900 budget."
+    },
+    {
+      "profile_id": "G5_named_wynwood",
+      "description": "Graphic designer who explicitly wants to live in or near Wynwood for the art scene and nightlife.",
+      "budget_max": 3300,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": ["social", "walkable"],
+      "near": ["Wynwood"],
+      "expected_neighborhoods": ["Wynwood", "Downtown"],
+      "not_relevant_neighborhoods": ["Pinecrest", "Coral Gables"],
+      "rationale": "Wynwood is the named choice and nearby Downtown offers similar energy at a comparable price."
+    },
+    {
+      "profile_id": "G6_coliving_seeker",
+      "description": "Newcomer wanting a private bedroom in a shared apartment to meet people and keep costs down.",
+      "budget_max": 1400,
+      "household": "alone",
+      "housing_preference": "co_living",
+      "tags": ["co_living", "social", "transit"],
+      "expected_neighborhoods": ["Downtown", "Brickell"],
+      "not_relevant_neighborhoods": ["Pinecrest", "Coral Gables"],
+      "rationale": "Shared apartments with private rooms are concentrated in the urban core, and around $1,400 for a room is plausible in Downtown or Brickell."
+    },
+    {
+      "profile_id": "G7_low_noise_aircraft",
+      "description": "Light sleeper who is sensitive to road and aircraft noise and wants a calm area.",
+      "budget_max": 3600,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": ["low_noise", "quiet"],
+      "expected_neighborhoods": ["Pinecrest", "Coral Gables"],
+      "not_relevant_neighborhoods": ["Downtown", "Wynwood"],
+      "rationale": "Pinecrest and Coral Gables residential areas are farther from highways and dense traffic, while Downtown and Wynwood have constant road noise."
+    },
+    {
+      "profile_id": "G8_couple_luxury_social",
+      "description": "Professional couple wanting a high-rise with amenities, restaurants and nightlife and willing to pay for it.",
+      "budget_max": 5500,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": ["social", "walkable", "transit"],
+      "expected_neighborhoods": ["Brickell", "Coconut Grove"],
+      "not_relevant_neighborhoods": ["Pinecrest"],
+      "rationale": "Brickell and the Grove suit a $5,500 two-bedroom budget with lively dining, while Pinecrest lacks walkable nightlife."
+    },
+    {
+      "profile_id": "G9_named_gables_couple",
+      "description": "Couple who work at the university and want to be in or near Coral Gables, preferring a quiet walkable feel.",
+      "budget_max": 4200,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": ["quiet", "walkable", "transit"],
+      "near": ["Coral Gables"],
+      "expected_neighborhoods": ["Coral Gables", "Coconut Grove"],
+      "not_relevant_neighborhoods": ["Downtown", "Wynwood"],
+      "rationale": "Coral Gables is named, and the Grove is a similar nearby leafy option within a $4,200 two-bedroom budget."
+    },
+    {
+      "profile_id": "G10_pet_owner_midbudget",
+      "description": "Dog owner who wants a pet-friendly building with walkable green space and moderate nightlife.",
+      "budget_max": 3500,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": ["pet_friendly", "walkable", "social"],
+      "expected_neighborhoods": ["Coconut Grove", "Wynwood"],
+      "not_relevant_neighborhoods": ["Pinecrest", "Downtown"],
+      "rationale": "The Grove has parks and a pet-friendly village feel, and Wynwood has dog-friendly patios and murals with moderate rents."
+    }
+  ]
+}
