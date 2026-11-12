@@ -74,15 +74,17 @@ HUD Small Area Fair Market Rents per ZIP and unit size, from Joana's `data/raw/n
 
 ## co_living_listings.csv
 
-Hand-curated co-living properties, following the advisor's rule: a property qualifies when it explicitly offers a private bedroom for rent in a shared apartment. Each property is counted once across listing sites. With the census feature set, co-living requests only consider ZIPs with a listed property, and the budget is compared with the lowest per-bedroom "from" price. Prices change and may reflect specials; record `observed` and `sources` when updating.
+Hand-curated co-living properties. A property qualifies when it rents a private bedroom with shared living space: the advisor's rule (private bedroom in a shared apartment), widened by Om on Nov 11 to include shared houses. Each property is counted once across listing sites, and ZIPs are confirmed with the Census geocoder. With the census feature set, co-living requests only consider ZIPs with a listed property, and the budget is compared with the lowest per-bedroom "from" price. Prices change and may reflect specials; record `observed` and `sources` when updating.
 
 | Column | Description |
 |--------|-------------|
 | property | Property name (unique) |
 | zip | 5-digit ZIP |
-| per_bedroom_rent_from, per_bedroom_rent_to | Monthly per-bedroom rent range, USD |
+| type | `building` or `shared_house` |
+| per_bedroom_rent_from, per_bedroom_rent_to | Monthly per-bedroom rent range, USD (`to` may be blank) |
 | observed | Date the prices were checked |
 | sources | Listing sites or pages used |
+| confidence | `high` (own site confirms), `medium` (listing sites or guides only) |
 | notes | Fees, specials, unit types |
 
 ## zip_area_names.csv

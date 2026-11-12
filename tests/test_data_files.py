@@ -90,8 +90,11 @@ def test_co_living_listings_are_unique_sourced_and_priced():
     assert len(names) == len(set(names)), "each property is counted once"
     for row in listings:
         assert row["zip"] in COUNTY
-        low, high = float(row["per_bedroom_rent_from"]), float(row["per_bedroom_rent_to"])
+        low = float(row["per_bedroom_rent_from"])
+        high = float(row["per_bedroom_rent_to"]) if row["per_bedroom_rent_to"].strip() else low
         assert 0 < low <= high, row["property"]
+        assert row["type"] in ("building", "shared_house"), row["property"]
+        assert row["confidence"] in ("high", "medium", "low"), row["property"]
         assert row["sources"].strip() and row["observed"].strip()
 
 
