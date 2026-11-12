@@ -751,3 +751,61 @@ def test_bad_co_living_listings_fail_explicitly(tmp_path, rows):
     listings(tmp_path, rows)
     with pytest.raises(DataError):
         Recommender(tmp_path)
+
+
+def test_listing_backed_results_report_listing_provenance(tmp_path):
+    census_snapshot(tmp_path, [area("00001", 1500)], {"00001": (10, 0.1, 10, 10, 100)})
+    listings(tmp_path, [("i5", "00001", 1299, 1626)])
+    result = Recommender(tmp_path).recommend(coliving_request(1500))
+    assert result["results"][0]["rent_source"] == "co_living_listings.csv"
+    assert not any("HUD Small Area Fair Market Rent" in text for text in result["warnings"])
+    assert any("per-bedroom 'from' price" in text for text in result["warnings"])
+
+
+def test_empty_listings_registry_means_no_co_living(tmp_path):
+    census_snapshot(tmp_path, [area("00001", 1500)], {"00001": (10, 0.1, 10, 10, 100)})
+    listings(tmp_path, [])
+    result = Recommender(tmp_path).recommend(coliving_request(1500))
+    assert result["status"] == "no_matches"
+    assert not any("studio rent stands in" in text for text in result["warnings"])
+
+
+def test_quiet_and_low_noise_do_not_count_noise_twice(tmp_path):
+    engine = census_snapshot(
+        tmp_path,
+        [area("00001"), area("00002")],
+        {"00001": (90, 0.4, 40, 30, 100), "00002": (2, 0.0, 1, 1, 100)},
+    )
+    both = engine.recommend(request(tags=["quiet", "low_noise"]))
+    assert both["feature_order"] == ["quiet"]
+    assert any("not counted a second time" in text for text in both["warnings"])
+    assert engine.recommend(request(tags=["low_noise"]))["feature_order"] == ["low_noise"]
+
+
+def test_neighborhood_only_profiles_evaluate(tmp_path):
+    engine = snapshot(tmp_path, [area("00001", transit=1), area("00002", transit=0.5)])
+    profile = dict(request(), profile_id="h", expected_neighborhoods=["Town"])
+    report = evaluate(engine, [profile], {"Town": ["00002"]})
+    assert report["summary"]["3"]["precision"] == pytest.approx(1 / 3)
+    assert report["summary"]["3"]["zip_label_precision"] is None
+    with pytest.raises(ValueError, match="needs expected_relevant_zips"):
+        evaluate(engine, [profile])
+
+
+def test_repository_heldout_sets_can_be_scored_once_approved():
+    root = Path(__file__).resolve().parents[1]
+    mapping = json.loads((root / "eval/neighborhood_zips.json").read_text())["neighborhoods"]
+    engine = Recommender(root / "data")
+    for name in ("heldout_profiles_draft.json", "heldout_profiles_generated.json"):
+        profiles = json.loads((root / "eval" / name).read_text())["profiles"]
+        report = evaluate(engine, profiles, mapping)
+        assert len(report["profiles"]) == 2 * len(profiles)
+
+
+def test_missing_neighborhood_mapping_path_is_an_error(monkeypatch, capsys):
+    from flow_neighborhoods import evaluate as module
+
+    monkeypatch.setattr("sys.argv", ["evaluate", "--neighborhoods", "eval/no_such_file.json"])
+    with pytest.raises(SystemExit):
+        module.main()
+    assert "neighborhood mapping not found" in capsys.readouterr().err

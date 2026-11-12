@@ -64,7 +64,7 @@ Name-to-ZIP dictionary for `near` requests. One row per (alias, zip); a name can
 
 ## rents_hud.csv
 
-HUD Small Area Fair Market Rents per ZIP and unit size, from Joana's `data/raw/new/HUD-SAFMR.csv`; the HUD release year is not stated in the source file. **The budget filter compares against these** for the census feature set (`rent_basis="hud"`): living alone → `one_bedroom`, with a co-leaser → `two_bedroom`, co-living → `efficiency` as a stand-in for per-bedroom rent. These are benchmarks, not asking rents; where Zillow's August 2026 asking rents exist (29 ZIPs) they are a median 17% higher. ZIPs where the ACS finds no rental market (33101 PO boxes, 33039 air reserve base) stay excluded even though HUD lists them.
+HUD Small Area Fair Market Rents per ZIP and unit size, from Joana's `data/raw/new/HUD-SAFMR.csv` (the 2026 release, confirmed by Joana on PR #22). **The budget filter compares against these** for the census feature set (`rent_basis="hud"`): living alone → `one_bedroom`, with a co-leaser → `two_bedroom`, co-living → `efficiency` as a stand-in for per-bedroom rent. These are benchmarks, not asking rents; where Zillow's August 2026 asking rents exist (29 ZIPs) they are a median 17% higher. ZIPs where the ACS finds no rental market (33101 PO boxes, 33039 air reserve base) stay excluded even though HUD lists them.
 
 | Column | Description |
 |--------|-------------|

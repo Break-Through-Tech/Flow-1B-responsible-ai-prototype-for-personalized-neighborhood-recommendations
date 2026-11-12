@@ -17,7 +17,12 @@ def relevant_zips(profile: dict, neighborhoods: dict[str, list[str]] | None) -> 
 
     A ZIP shared by two neighborhoods matches either (no addresses to split it).
     """
-    relevant = set(profile["expected_relevant_zips"])
+    relevant = set(profile.get("expected_relevant_zips", []))
+    if not relevant and not (neighborhoods and profile.get("expected_neighborhoods")):
+        raise ValueError(
+            f"{profile['profile_id']}: needs expected_relevant_zips, or expected_neighborhoods "
+            "with a neighborhood mapping."
+        )
     if neighborhoods and profile.get("expected_neighborhoods"):
         unknown = set(profile["expected_neighborhoods"]) - set(neighborhoods)
         if unknown:
@@ -36,7 +41,7 @@ def evaluate(
     rows = []
     for profile in profiles:
         relevant = relevant_zips(profile, neighborhoods)
-        labeled = set(profile["expected_relevant_zips"])
+        labeled = set(profile.get("expected_relevant_zips", []))
         expected_names = profile.get("expected_neighborhoods", []) if neighborhoods else []
         keys = ("budget_max", "household", "housing_preference", "tags", "weights", "near")
         payload = {key: profile[key] for key in keys if key in profile}
@@ -56,7 +61,10 @@ def evaluate(
                     "profile_id": profile["profile_id"],
                     "k": k,
                     "precision": sum(item["zip"] in relevant for item in results) / k,
-                    "zip_label_precision": sum(item["zip"] in labeled for item in results) / k,
+                    # None for neighborhood-only profiles (no ZIP labels to compare).
+                    "zip_label_precision": sum(item["zip"] in labeled for item in results) / k
+                    if labeled
+                    else None,
                     "neighborhood_coverage": sum(
                         any(item["zip"] in neighborhoods[name] for item in results)
                         for name in expected_names
@@ -84,7 +92,13 @@ def evaluate(
         nonempty = [row for row in selected if row["response"]["returned_count"]]
         summary[str(k)] = {
             "precision": mean(row["precision"] for row in selected),
-            "zip_label_precision": mean(row["zip_label_precision"] for row in selected),
+            "zip_label_precision": mean(
+                row["zip_label_precision"]
+                for row in selected
+                if row["zip_label_precision"] is not None
+            )
+            if any(row["zip_label_precision"] is not None for row in selected)
+            else None,
             "neighborhood_coverage": mean(
                 row["neighborhood_coverage"]
                 for row in selected
@@ -124,7 +138,9 @@ def main():
     args.output = args.output or Path(f"outputs/recommender_{args.scorer}_{args.features}.json")
     engine = Recommender(args.data_dir, scorer=args.scorer, feature_set=args.features)
     neighborhoods = None
-    if str(args.neighborhoods) not in ("", ".") and args.neighborhoods.exists():
+    if str(args.neighborhoods) not in ("", "."):  # an explicit empty string opts out
+        if not args.neighborhoods.exists():
+            parser.error(f"neighborhood mapping not found: {args.neighborhoods}")
         neighborhoods = json.loads(args.neighborhoods.read_text(encoding="utf-8"))["neighborhoods"]
     report = evaluate(engine, json.loads(args.profiles.read_text(encoding="utf-8")), neighborhoods)
     code_paths = sorted(Path(__file__).parent.glob("*.py"))

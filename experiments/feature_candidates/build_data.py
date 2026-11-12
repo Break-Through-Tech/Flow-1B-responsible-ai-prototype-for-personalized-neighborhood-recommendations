@@ -25,26 +25,26 @@ gazetteer, census = Path(sys.argv[1]), Path(sys.argv[2])
 data = Path("data")  # inputs
 out = Path(sys.argv[3]) if len(sys.argv) > 3 else data  # outputs
 out.mkdir(parents=True, exist_ok=True)
-zips = [z.strip() for z in (data / "miami_dade_zctas.txt").read_text().splitlines() if z.strip()]
+zips = [z.strip() for z in (data / "miami_dade_zctas.txt").read_text(encoding="utf-8").splitlines() if z.strip()]
 
 
 def acs(table):
-    with (census / f"{table}.dat").open() as f:
+    with (census / f"{table}.dat").open(encoding="utf-8", newline="") as f:
         return {r["GEO_ID"][-5:]: r for r in csv.DictReader(f, delimiter="|")}
 
 
 geo = {}
-with gazetteer.open() as f:
+with gazetteer.open(encoding="utf-8", newline="") as f:
     for row in csv.DictReader(f, delimiter="\t"):
         row = {k.strip(): v.strip() for k, v in row.items()}
         geo[row["GEOID"]] = row
 commute = acs("b08301")
 noise = {
     r["zip"]: r["share_ge_55"]
-    for r in csv.DictReader(open(Path(__file__).parent / "noise" / "noise_by_zip.csv"))
+    for r in csv.DictReader(open(Path(__file__).parent / "noise" / "noise_by_zip.csv", encoding="utf-8", newline=""))
 }
 estab, city = {}, {}
-with (census / "zbp_miami.csv").open() as f:
+with (census / "zbp_miami.csv").open(encoding="utf-8", newline="") as f:
     for row in csv.DictReader(f):
         estab.setdefault(row["zip"], {})[row["naics"]] = int(row["est"])
         city[row["zip"]] = row["city"].title()
@@ -73,7 +73,7 @@ with open(out / "census_features.csv", "w", newline="", encoding="utf-8") as tar
         ])
 
 joana = Path(__file__).parent / "joana"
-names = {r["zip_code"]: r for r in csv.DictReader(open(joana / "area-name.csv"))}
+names = {r["zip_code"]: r for r in csv.DictReader(open(joana / "area-name.csv", encoding="utf-8-sig", newline=""))}
 NAME_SOURCE = "Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)"
 with open(out / "zip_area_names.csv", "w", newline="", encoding="utf-8") as target:
     w = csv.writer(target)
@@ -83,7 +83,7 @@ with open(out / "zip_area_names.csv", "w", newline="", encoding="utf-8") as targ
             r = names[z]
             w.writerow([z, r["primary_area_name"], r["secondary_area_names"], r["area_name_type"], NAME_SOURCE])
 
-hud = {r["zip_code"]: r for r in csv.DictReader(open(joana / "HUD-SAFMR.csv"))}
+hud = {r["zip_code"]: r for r in csv.DictReader(open(joana / "HUD-SAFMR.csv", encoding="utf-8-sig", newline=""))}
 UNITS = ["efficiency", "one_bedroom", "two_bedroom", "three_bedroom", "four_bedroom"]
 with open(out / "rents_hud.csv", "w", newline="", encoding="utf-8") as target:
     w = csv.writer(target)
@@ -92,7 +92,7 @@ with open(out / "rents_hud.csv", "w", newline="", encoding="utf-8") as target:
         if z in hud:
             w.writerow([z, *(hud[z][u] for u in UNITS), "HUD Small Area Fair Market Rents (Joana HUD-SAFMR.csv)"])
 
-service = {r["zip_code"]: r for r in csv.DictReader(open(joana / "miami_transit.csv"))}
+service = {r["zip_code"]: r for r in csv.DictReader(open(joana / "miami_transit.csv", encoding="utf-8-sig", newline=""))}
 with open(out / "transit_service.csv", "w", newline="", encoding="utf-8") as target:
     w = csv.writer(target)
     w.writerow([
@@ -111,7 +111,7 @@ with open(out / "transit_service.csv", "w", newline="", encoding="utf-8") as tar
 # match: primary names define where a place is; secondary names (areas a ZIP also
 # touches) are used only when no primary name matches.
 aliases = {}
-for r in csv.DictReader(open(data / "area_features.csv")):
+for r in csv.DictReader(open(data / "area_features.csv", encoding="utf-8-sig", newline="")):
     if not r["area_name"].startswith("ZCTA5"):
         aliases.setdefault((r["area_name"], r["zip"]), ("primary", "area_features.csv area_name"))
 for z in zips:

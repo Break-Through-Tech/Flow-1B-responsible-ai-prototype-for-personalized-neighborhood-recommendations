@@ -85,13 +85,15 @@ class Recommender:
         self.data_version.update(versions)
         if feature_set == "census":
             self.data_version.update(apply_census(directory, self.areas, self.geography))
-        self.rents, self.co_living = {}, {}
+        self.rents, self.co_living, self.has_listings = {}, {}, False
         if rent_basis == "hud":
             self.rents, versions = load_rents(directory)
             self.data_version.update(versions)
             # Advisor: co-living budgets use the per-bedroom rent of listed properties.
             self.co_living, versions = load_co_living(directory)
             self.data_version.update(versions)
+            # A present-but-empty registry means "no listed co-living", not the HUD fallback.
+            self.has_listings = bool(versions)
         self.constant_features = {}
         for feature in (*ALL_FEATURES, *OPTIONAL_FEATURES):
             values = {area[feature] for area in self.areas if area[feature] is not None}
@@ -99,7 +101,7 @@ class Recommender:
                 self.constant_features[feature] = values.pop()
 
     def uses_listings(self, request: Request) -> bool:
-        return request.housing_preference == "co_living" and bool(self.co_living)
+        return request.housing_preference == "co_living" and self.has_listings
 
     def rent_label(self, request: Request) -> str:
         if self.uses_listings(request):
@@ -168,9 +170,16 @@ class Recommender:
         if self.scorer == "mean":
             selected = [(f, u) for f, u in zip(features, user) if u]
             features, user = tuple(f for f, _ in selected), tuple(u for _, u in selected)
+        if self.duplicate_noise(request):
+            kept = [(f, u) for f, u in zip(features, user) if f != "low_noise"]
+            features, user = tuple(f for f, _ in kept), tuple(u for _, u in kept)
         if request.near:
             features, user = (*features, "near"), (*user, float(request.weight("near")))
         return features, user
+
+    def duplicate_noise(self, request: Request) -> bool:
+        """quiet uses the noise measure as a stand-in, so quiet + low_noise would count it twice."""
+        return self.feature_set == "census" and {"quiet", "low_noise"} <= set(request.tags)
 
     def score(self, vector: list[float], user: tuple[float, ...]) -> list[float]:
         """Per-feature contributions; their sum is the area's score."""
@@ -224,7 +233,9 @@ class Recommender:
                 "rent_usd": rent,
                 "rent_basis": self.rent_label(request),
                 "median_rent_usd": area["median_rent_usd"],
-                "rent_source": "rents_hud.csv"
+                "rent_source": "co_living_listings.csv"
+                if self.uses_listings(request)
+                else "rents_hud.csv"
                 if self.rent_basis == "hud"
                 else "area_features_cleaned.csv",
                 "source_period": None,
@@ -278,7 +289,10 @@ class Recommender:
             },
             "warnings": [
                 (
-                    f"Budget is compared with the HUD Small Area Fair Market Rent for a "
+                    "Budget is compared with each listed property's per-bedroom 'from' price; "
+                    "actual prices and availability are unverified."
+                    if self.uses_listings(request)
+                    else f"Budget is compared with the HUD Small Area Fair Market Rent for a "
                     f"{RENT_LABELS[rent_unit(request)]}: a benchmark, not an asking rent. Zillow "
                     "2026 asking rents run about 17% higher where available. Actual prices and "
                     "availability are unverified."
@@ -305,6 +319,11 @@ class Recommender:
             response["warnings"].append(
                 "quiet is approximated by low road and aviation noise until a measure of "
                 "residential character (quiet residential streets) is available."
+            )
+        if self.duplicate_noise(request):
+            response["warnings"].append(
+                "quiet and low_noise use the same noise measure for now, so low_noise is not "
+                "counted a second time."
             )
         if "low_noise" in request.tags and self.feature_set == "provided":
             response["warnings"].append(

@@ -75,3 +75,25 @@ for option in QUIET:
     top = ", ".join(names[x["zip"]] + ("*" if x["zip"] in rel else "") for x in p4["response"]["results"])
     print(f"{option:44} {s['3']['precision']:5.2f} {s['5']['precision']:5.2f} {s['3']['mrr']:6.3f} {s['5']['neighborhood_coverage']:6.2f}  {top:42} {verdict}")
     print(f"{'':44} per-profile RR: " + " ".join(f"{k}:{v:.2f}" for k, v in rr.items()))
+
+
+# ---------------------------------------------------------------------------
+# Ranking-only comparison with a feasible budget (advisor review, Nov 12).
+# At $2,200 P4 cannot afford any ZIP in its neighborhoods under HUD two-bedroom
+# rents, so no quiet definition could improve it. A $3,300 development budget
+# covers 8 of its 9 neighborhood ZIPs (all but 33146). P4 itself, the original
+# profiles and the held-out sets are NOT changed; this only compares rankings.
+DEV_BUDGET = 3300
+p4 = next(p for p in profiles if p["profile_id"].startswith("P4"))
+p4_dev = dict(p4, profile_id="P4_dev_budget", budget_max=DEV_BUDGET)
+relevant = {z for n in p4["expected_neighborhoods"] for z in neighborhoods[n]}
+print(f"\nP4 at a ${DEV_BUDGET} development budget (ranking comparison only; P4 unchanged)")
+print(f"{'quiet definition':44} {'P@3':>5} {'P@5':>5} {'RR':>5}  expected-neighborhood ZIP ranks   top 5")
+for option in QUIET:
+    engine = Recommender("data")
+    for a in engine.areas:
+        a["quiet"] = QUIET[option][a["zip"]]
+    row = {r["k"]: r for r in evaluate(engine, [p4_dev], neighborhoods)["profiles"]}
+    ranks = sorted(v for v in row[5]["relevant_ranks"].values() if v)
+    top = ", ".join(names[x["zip"]] + ("*" if x["zip"] in relevant else "") for x in row[5]["response"]["results"])
+    print(f"{option:44} {row[3]['precision']:5.2f} {row[5]['precision']:5.2f} {row[3]['reciprocal_rank']:5.2f}  {str(ranks[:6]):32} {top}")
