@@ -74,12 +74,14 @@ The typed return becomes the tool's published output schema, so it doubles as th
 | `zip`, `area_name` | The ZIP and its display name (`null` if outside the snapshot) |
 | `status` | `ok` (snippets found), `no_evidence` (known ZIP, no snippets), `unknown_area` (valid ZIP outside Miami-Dade) |
 | `theme_counts` | Snippets per theme, e.g. `{"transit": 1, "quiet": 1}` |
-| `evidence[]` | `evidence_id`, `theme`, `text`, `source_label`, `is_demo`, `polarity` |
+| `evidence[]` | `evidence_id`, `theme`, `text`, `source_label`, `is_demo`, `polarity`, `needs_review` |
+| `theme_polarity` | Per theme, how many snippets read positive / negative / mixed / neutral |
+| `nlp_tags` | Verified LLM tags for the ZIP from `data/nlp/location_tags.json` (tag, level, count, quotes with `snippet_id` and `is_demo`) |
 | `is_demo`, `warning` | All snippets are demo text, not authentic reviews |
 | `guidance` | Grounding rules: quote exactly, cite `evidence_id`, treat theme labels as topics rather than sentiment, and don't generalize |
 | `extractor_version`, `data_version` | Which extractor and which snippet file (SHA-256) produced the answer |
 
-**Why `guidance` exists:** theme labels are topics. Brickell's `quiet` snippet reads "Busy area; street noise is real in some towers." It is evidence *against* quiet. `polarity` stays `unknown` until the NLP work in #15 supplies per-theme sentiment. That work will plug in behind the same contract: a new `extractor_version`, with `polarity` filled in.
+**Polarity comes from the NLP package** (`src/nlp`, from PR #15) via `flow_neighborhoods/nlp_bridge.py`: VADER area sentiment per snippet. Brickell's `quiet` snippet, "Busy area; street noise is real in some towers," now reads `negative`, i.e. evidence against quiet. Polarity is automated and can be wrong, which the guidance tells the agent. Clauses about safety or crime are never scored: they get `polarity: needs_review`, and the agent must not characterize areas as safe or unsafe. Without the `nlp` extra (`vaderSentiment`), polarity falls back to `unknown`.
 
 `ethics` is a policy-only exception to the `(engine, *args)` convention: its plain
 function takes no arguments, so policy remains available when CSV loading fails.
