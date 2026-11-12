@@ -15,6 +15,7 @@ from .data import (
     load_rents,
     load_snapshot,
     normalize_name,
+    percentiles,
 )
 
 # "mean" averages the requested features (weighted by priority), so strengths
@@ -45,6 +46,19 @@ def rent_unit(request: Request) -> str:
         return "efficiency"
     return "two_bedroom" if request.household == "with_co_leaser" else "one_bedroom"
 
+
+# "Also consider" (advisor, Nov 12: recommend beyond what users think they need). Up to
+# ALSO_CONSIDER eligible ZIPs outside the top results' neighborhoods, chosen by a blend of
+# the request score and how popular the area is with recent movers.
+ALSO_CONSIDER = 2
+STRENGTH = 0.75  # a feature at or above this (0-1 scale) is named as a strength
+STRENGTH_LABELS = {
+    "transit": "transit",
+    "social": "restaurants and nightlife",
+    "walkable": "walkability",
+    "low_noise": "low road and aircraft noise",
+    "quiet": "quiet",
+}
 
 # A name covering more ZIPs than this (e.g. "Miami") is too broad to mean "near".
 MAX_NEAR_ZIPS = 10
@@ -94,6 +108,15 @@ class Recommender:
             self.data_version.update(versions)
             # A present-but-empty registry means "no listed co-living", not the HUD fallback.
             self.has_listings = bool(versions)
+        # Recent move-in rate (share of residents who moved in the past year), as a
+        # percentile: "why people are moving there". Behavior, not demographics.
+        movers = {
+            a["zip"]: float(a["migration_score"])
+            if str(a.get("migration_score", "")).strip()
+            else None
+            for a in self.areas
+        }
+        self.mover_rank = percentiles(movers)
         self.constant_features = {}
         for feature in (*ALL_FEATURES, *OPTIONAL_FEATURES):
             values = {area[feature] for area in self.areas if area[feature] is not None}
@@ -109,6 +132,58 @@ class Recommender:
         if self.rent_basis == "hud":
             return f"HUD Small Area Fair Market Rent, {RENT_LABELS[rent_unit(request)]}"
         return "ACS 2018-22 median gross rent, all unit sizes"
+
+    def also_consider(self, candidates: list[dict], results: list[dict], request: Request):
+        """Eligible ZIPs beyond the top results, in different neighborhoods, with a reason."""
+        by_zip = {a["zip"]: a for a in self.areas}
+
+        def hood(z):
+            return self.geography.get(z, {}).get("neighborhood") or by_zip[z]["area_name"]
+
+        taken = {r["zip"] for r in results}
+        seen = {hood(z) for z in taken}
+        pool = [c for c in candidates if c["zip"] not in taken]
+        pool.sort(
+            key=lambda c: (
+                -(0.5 * c["score"] + 0.5 * (self.mover_rank.get(c["zip"]) or 0)),
+                c["zip"],
+            )
+        )
+        picks = []
+        for c in pool:
+            if len(picks) == ALSO_CONSIDER:
+                break
+            if hood(c["zip"]) in seen:
+                continue
+            seen.add(hood(c["zip"]))
+            area = by_zip[c["zip"]]
+            strengths = [
+                label
+                for f, label in STRENGTH_LABELS.items()
+                if f not in request.tags
+                and area.get(f) is not None
+                and area[f] >= STRENGTH
+                and not (f == "quiet" and self.feature_set == "census")  # noise stand-in
+            ]
+            mover = self.mover_rank.get(c["zip"])
+            why = [f"also strong on {', '.join(strengths)}"] if strengths else []
+            if mover is not None and mover >= STRENGTH:
+                why.append(
+                    f"popular with recent movers (top {round((1 - mover) * 100) or 1}% of ZIPs)"
+                )
+            picks.append(
+                {
+                    "zip": c["zip"],
+                    "area_name": c["area_name"],
+                    "neighborhood": self.geography.get(c["zip"], {}).get("neighborhood"),
+                    "rent_usd": c["rent_usd"],
+                    "rent_basis": c["rent_basis"],
+                    "score": c["score"],
+                    "mover_percentile": mover,
+                    "why": why or ["fits your budget in a different part of town"],
+                }
+            )
+        return picks
 
     def crowd_themes(self, zip_code: str) -> dict:
         if not isinstance(zip_code, str) or not re.fullmatch(r"[0-9]{5}", zip_code):
@@ -369,6 +444,13 @@ class Recommender:
         for rank, item in enumerate(results, 1):
             item["rank"] = rank
             item["themes"] = self.crowd_themes(item["zip"])["evidence"]
+        response["also_consider"] = self.also_consider(candidates, results, request)
+        if response["also_consider"]:
+            response["warnings"].append(
+                "also_consider lists areas outside your top matches, picked for strengths you "
+                "did not ask for and popularity with recent movers; they fit your budget but "
+                "rank lower on your stated priorities."
+            )
         response.update(
             results=results,
             eligible_count=len(candidates),
