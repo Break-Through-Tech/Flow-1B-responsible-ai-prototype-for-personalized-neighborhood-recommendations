@@ -38,10 +38,47 @@ def test_returns_evidence_counts_and_grounding_rules(tmp_path):
     assert result["area_name"] == "Area 00001"
     assert result["theme_counts"] == {"quiet": 2, "transit": 1}
     assert [e["evidence_id"] for e in result["evidence"]] == ["T1", "T2", "T3"]
-    assert all(e["is_demo"] and e["polarity"] == "unknown" for e in result["evidence"])
-    assert "not a sentiment" in result["guidance"]
+    assert all(e["is_demo"] for e in result["evidence"])
+    polarity = {e["evidence_id"]: e["polarity"] for e in result["evidence"]}
+    assert polarity["T1"] == "negative" and polarity["T3"] == "positive"  # NLP sentiment
+    assert result["theme_polarity"]["quiet"] == {"negative": 1, "positive": 1}
+    assert result["nlp_tags"] == []  # no data/nlp index in this fixture
+    assert "evidence against quiet" in result["guidance"]
     assert list(result["data_version"]) == ["crowd_text_snippets.csv"]
     json.dumps(result, allow_nan=False)
+
+
+def test_safety_mentions_are_flagged_not_scored(tmp_path):
+    engine = with_snippets(
+        tmp_path, [("T1", "00001", "demo", "social", "I felt unsafe walking home at night.")]
+    )
+    evidence = crowd_themes(engine, "00001")["evidence"][0]
+    assert evidence["needs_review"] is True and evidence["polarity"] == "needs_review"
+    assert "safe or unsafe" in crowd_themes(engine, "00001")["guidance"]
+
+
+def test_without_nlp_polarity_stays_unknown(tmp_path, monkeypatch):
+    from flow_neighborhoods import nlp_bridge
+
+    monkeypatch.setattr(nlp_bridge, "analyze", None)
+    engine = with_snippets(tmp_path, [("T1", "00001", "demo", "quiet", "Not quiet at night.")])
+    result = crowd_themes(engine, "00001")
+    assert result["evidence"][0]["polarity"] == "unknown"
+    assert result["extractor_version"] == "provided-label-lookup-v1"
+
+
+def test_repository_nlp_tags_are_verified_quotes():
+    from flow_neighborhoods import Recommender as Engine
+
+    engine = Engine(ROOT / "data")
+    result = crowd_themes(engine, "33130")
+    assert result["theme_polarity"]["quiet"] == {"negative": 1}  # "Busy area; street noise..."
+    texts = {e["evidence_id"]: e["text"].lower() for e in engine.crowd_themes("33130")["evidence"]}
+    tags = {t["tag"]: t for t in result["nlp_tags"]}
+    assert "noisy" in tags
+    for tag in result["nlp_tags"]:
+        for quote in tag["quotes"]:
+            assert quote["quote"].lower() in texts[quote["snippet_id"]], quote
 
 
 def test_distinguishes_no_evidence_from_unknown_area(tmp_path):

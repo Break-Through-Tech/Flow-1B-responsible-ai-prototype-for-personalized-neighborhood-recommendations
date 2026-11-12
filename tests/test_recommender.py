@@ -225,7 +225,8 @@ def test_demo_evidence_preserved_without_sentiment_claim(tmp_path):
     engine = Recommender(tmp_path, feature_set="provided")
     evidence = engine.crowd_themes("00001")["evidence"][0]
     assert evidence["text"] == "Not quiet at night."
-    assert evidence["is_demo"] and evidence["polarity"] == "unknown"
+    assert evidence["is_demo"] and evidence["polarity"] == "negative"  # NLP area sentiment
+    assert evidence["needs_review"] is False
     assert evidence["evidence_id"] == "T1"
     evidence["text"] = "mutated"
     assert engine.crowd_themes("00001")["evidence"][0]["text"] == "Not quiet at night."

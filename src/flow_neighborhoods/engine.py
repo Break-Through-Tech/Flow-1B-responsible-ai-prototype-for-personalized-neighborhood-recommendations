@@ -6,6 +6,7 @@ import math
 import re
 from pathlib import Path
 
+from . import nlp_bridge
 from .contracts import ALL_FEATURES, Request, ValidationError
 from .data import DataError, apply_census, load_places, load_snapshot, normalize_name
 
@@ -44,6 +45,7 @@ class Recommender:
         self.model_version = SCORERS[scorer]
         self.feature_set = feature_set
         directory = Path(data_dir)
+        self.data_dir = directory
         self.areas, self.evidence, self.data_version = load_snapshot(directory)
         self.geography, self.aliases, versions = load_places(directory)
         self.data_version.update(versions)
@@ -59,15 +61,22 @@ class Recommender:
         if not isinstance(zip_code, str) or not re.fullmatch(r"[0-9]{5}", zip_code):
             raise ValidationError("ZIP must be a five-digit string.")
         known = any(area["zip"] == zip_code for area in self.areas)
-        evidence = copy.deepcopy(self.evidence.get(zip_code, []))
+        evidence = nlp_bridge.annotate(copy.deepcopy(self.evidence.get(zip_code, [])))
         return {
             "zip": zip_code,
             "status": "ok" if evidence else "no_evidence",
             "known_area": known,
             "evidence": evidence,
             "is_demo": True,
-            "extractor_version": "provided-label-lookup-v1",
-            "warning": "Demo text, not authentic reviews. Topic labels do not imply sentiment.",
+            "extractor_version": nlp_bridge.EXTRACTOR
+            if nlp_bridge.available()
+            else nlp_bridge.FALLBACK,
+            "warning": "Demo text, not authentic reviews. Topic labels do not imply sentiment"
+            + (
+                "; polarity is automated sentiment about the area and can be wrong."
+                if nlp_bridge.available()
+                else "."
+            ),
         }
 
     def resolve_near(self, names: tuple[str, ...]) -> dict[str, list[str]]:

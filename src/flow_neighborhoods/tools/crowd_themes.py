@@ -1,5 +1,6 @@
 """crowd_themes tool: review snippets and theme labels for one ZIP."""
 
+import json
 import re
 from collections import Counter
 from typing import Literal, TypedDict
@@ -15,6 +16,20 @@ class Evidence(TypedDict):
     source_label: str
     is_demo: bool
     polarity: str
+    needs_review: bool
+
+
+class TagQuote(TypedDict):
+    snippet_id: str
+    quote: str
+    is_demo: bool
+
+
+class NlpTag(TypedDict):
+    tag: str
+    level: str
+    count: int
+    quotes: list[TagQuote]
 
 
 class CrowdThemes(TypedDict):
@@ -22,7 +37,9 @@ class CrowdThemes(TypedDict):
     area_name: str | None
     status: Literal["ok", "no_evidence", "unknown_area"]
     theme_counts: dict[str, int]
+    theme_polarity: dict[str, dict[str, int]]
     evidence: list[Evidence]
+    nlp_tags: list[NlpTag]
     is_demo: bool
     extractor_version: str
     warning: str
@@ -32,10 +49,38 @@ class CrowdThemes(TypedDict):
 
 GUIDANCE = (
     "Quote snippet text exactly and cite its evidence_id. These are demo snippets, not "
-    "authentic reviews: say so. A theme label is a topic, not a sentiment ('quiet' can tag "
-    "'Not quiet at night.'). Do not generalize beyond these snippets or invent others; "
-    "if status is no_evidence or unknown_area, say there are no snippets for this ZIP."
+    "authentic reviews: say so. A theme label is a topic; use polarity for whether a snippet "
+    "speaks for or against it ('quiet' with polarity negative, e.g. 'Not quiet at night.', "
+    "is evidence against quiet). Polarity is automated and can be wrong; say 'reviews suggest'. "
+    "Never describe an area as safe or unsafe: needs_review snippets mention safety and must "
+    "not be characterized. Do not generalize beyond these snippets or invent others; if status "
+    "is no_evidence or unknown_area, say there are no snippets for this ZIP."
 )
+
+
+def nlp_tags(engine: Recommender, zip_code: str) -> list[NlpTag]:
+    """Verified LLM tags for the ZIP from data/nlp/location_tags.json (empty if absent)."""
+    path = engine.data_dir / "nlp" / "location_tags.json"
+    if not path.exists():
+        return []
+    tags = json.loads(path.read_text(encoding="utf-8")).get("locations", {}).get(zip_code, {})
+    out = [
+        {
+            "tag": name,
+            "level": record.get("level", "parent"),
+            "count": int(record["count"]),
+            "quotes": [
+                {
+                    "snippet_id": e["snippet_id"],
+                    "quote": e["quote"],
+                    "is_demo": bool(e.get("is_demo", True)),
+                }
+                for e in record["evidence"]
+            ],
+        }
+        for name, record in tags.get("tags", {}).items()
+    ]
+    return sorted(out, key=lambda t: (-t["count"], t["tag"]))
 
 
 def crowd_themes(engine: Recommender, zip_code: str) -> CrowdThemes:
@@ -58,7 +103,18 @@ def crowd_themes(engine: Recommender, zip_code: str) -> CrowdThemes:
         "area_name": names.get(result["zip"]),
         "status": status,
         "theme_counts": dict(sorted(Counter(e["theme"] for e in result["evidence"]).items())),
+        "theme_polarity": {
+            theme: dict(
+                sorted(
+                    Counter(
+                        e["polarity"] for e in result["evidence"] if e["theme"] == theme
+                    ).items()
+                )
+            )
+            for theme in sorted({e["theme"] for e in result["evidence"]})
+        },
         "evidence": result["evidence"],
+        "nlp_tags": nlp_tags(engine, result["zip"]),
         "is_demo": result["is_demo"],
         "extractor_version": result["extractor_version"],
         "warning": result["warning"],
