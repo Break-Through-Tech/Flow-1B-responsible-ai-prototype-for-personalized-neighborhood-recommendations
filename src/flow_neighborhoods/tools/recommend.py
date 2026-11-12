@@ -19,6 +19,7 @@ class Recommendation(TypedDict):
     feature_order: NotRequired[list[str]]
     preference_vector: NotRequired[list[float]]
     feature_set: NotRequired[str]
+    also_consider: NotRequired[list[dict[str, Any]]]
 
 
 def recommend(

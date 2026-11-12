@@ -4,7 +4,7 @@ Last updated: October 21, 2026. Owner: Om (`ompatel181005`). Written for an AI c
 
 ## Update: November 12, 2026 (advisor answers)
 
-Karla's answers applied on PR #22: original profile budgets reset to the median 2026 rent of their expected neighborhoods (`budget_note` on each profile); P3 expects Downtown + Wynwood; suburbs Kendall, West Kendall, Doral added to `eval/neighborhood_zips.json` and three suburb profiles (H9-H11) to the held-out draft; monthly refresh approved (qualitative reviews must come from permitted sources, not scraped Google). Original profiles now P@3 0.53, MRR 0.82. Next: "you might also like" recommendations (Karla's Netflix point), NLP PRs #23/#24, and a residential-character quiet measure (single-family share is the lead candidate).
+Karla's answers applied on PR #22: original profile budgets reset to the median 2026 rent of their expected neighborhoods (`budget_note` on each profile); P3 expects Downtown + Wynwood; suburbs Kendall, West Kendall, Doral added to `eval/neighborhood_zips.json` and three suburb profiles (H9-H11) to the held-out draft; monthly refresh approved (qualitative reviews must come from permitted sources, not scraped Google). Original profiles now P@3 0.53, MRR 0.82. `recommend` responses now include `also_consider` (up to 2 in-budget ZIPs from other neighborhoods, ranked by request score plus recent move-in rate, with place-based reasons; Karla's Netflix point). Next: NLP PRs #23/#24, and a residential-character quiet measure (single-family share is the lead candidate).
 
 ## Update: November 9, 2026 (advisor feedback)
 

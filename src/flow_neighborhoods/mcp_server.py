@@ -128,8 +128,10 @@ def create_server(directory: str | Path | None = None, scorer: str = "mean") -> 
         Tags: transit, social, quiet, low_noise, pet_friendly, walkable, co_living. weights sets a
         priority per requested tag (1 nice to have, 2 important, 3 top priority; "near"
         may be weighted too). near takes up to 3 neighborhood names or ZIPs and scores
-        closeness. Ranking is performed by Python. Preserve warnings, demo labels and
-        empty/clarification states. The agent must refuse prohibited requests first.
+        closeness. Ranking is performed by Python. also_consider holds up to 2 in-budget
+        ZIPs from other neighborhoods, with place-based reasons; present them separately
+        from the ranked results. Preserve warnings, demo labels and empty/clarification
+        states. The agent must refuse prohibited requests first.
         """
         return run(
             recommend_logic, budget_max, household, housing_preference, tags, k, weights, near

@@ -809,3 +809,32 @@ def test_missing_neighborhood_mapping_path_is_an_error(monkeypatch, capsys):
     with pytest.raises(SystemExit):
         module.main()
     assert "neighborhood mapping not found" in capsys.readouterr().err
+
+
+def test_also_consider_goes_beyond_top_results():
+    root = Path(__file__).resolve().parents[1]
+    engine = Recommender(root / "data")
+    req = request(budget_max=3000, household="with_co_leaser", tags=["transit", "walkable"])
+    response = engine.recommend(req)
+    top = {r["zip"] for r in response["results"]}
+    top_hoods = {r["neighborhood"] for r in response["results"]}
+    extra = response["also_consider"]
+    assert 1 <= len(extra) <= 2
+    assert len({e["neighborhood"] for e in extra}) == len(extra)
+    for e in extra:
+        assert e["zip"] not in top and e["neighborhood"] not in top_hoods
+        assert e["rent_usd"] <= 3000 and e["why"]
+        assert not any(w.startswith("also strong on") and "transit" in w for w in e["why"])
+    # Main ranking is unchanged by the extra suggestions.
+    engine.also_consider = lambda *args: []
+    assert engine.recommend(req)["results"] == response["results"]
+
+
+def test_also_consider_without_mover_data(tmp_path):
+    engine = snapshot(tmp_path, [area(f"0000{i}", 1000, transit=i / 10) for i in range(1, 6)])
+    response = engine.recommend(request(k=2))
+    assert len(response["also_consider"]) == 2
+    assert all(e["mover_percentile"] is None and e["why"] for e in response["also_consider"])
+    assert {e["zip"] for e in response["also_consider"]}.isdisjoint(
+        r["zip"] for r in response["results"]
+    )
