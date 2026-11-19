@@ -246,7 +246,13 @@ class Recommender:
             selected = [(f, u) for f, u in zip(features, user) if u]
             features, user = tuple(f for f, _ in selected), tuple(u for _, u in selected)
         if self.duplicate_noise(request):
-            kept = [(f, u) for f, u in zip(features, user) if f != "low_noise"]
+            # One underlying measure, but neither requested priority may be lost.
+            priority = float(max(request.weight("quiet"), request.weight("low_noise")))
+            kept = [
+                (f, priority if f == "quiet" else u)
+                for f, u in zip(features, user)
+                if f != "low_noise"
+            ]
             features, user = tuple(f for f, _ in kept), tuple(u for _, u in kept)
         if request.near:
             features, user = (*features, "near"), (*user, float(request.weight("near")))
@@ -398,7 +404,8 @@ class Recommender:
         if self.duplicate_noise(request):
             response["warnings"].append(
                 "quiet and low_noise use the same noise measure for now, so low_noise is not "
-                "counted a second time."
+                "counted a second time. The shared measure uses the higher requested priority "
+                f"({max(request.weight('quiet'), request.weight('low_noise'))})."
             )
         if "low_noise" in request.tags and self.feature_set == "provided":
             response["warnings"].append(
@@ -450,6 +457,21 @@ class Recommender:
                 "also_consider lists areas outside your top matches, picked for strengths you "
                 "did not ask for and popularity with recent movers; they fit your budget but "
                 "rank lower on your stated priorities."
+            )
+        uncertain = sorted(
+            {
+                listing["property"]
+                for item in results
+                for listing in item.get("co_living_listings", [])
+                if listing["confidence"] not in {"high", "medium"}
+            }
+        )
+        if uncertain:
+            response["warnings"].append(
+                "Low-confidence or unverified co-living records: "
+                + ", ".join(uncertain)
+                + ". Preserve each listing's sources, confidence and notes; verify its "
+                "property/address association before relying on it."
             )
         response.update(
             results=results,
