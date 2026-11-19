@@ -1,6 +1,7 @@
 """Checks on the committed data files: coverage, ranges, provenance and reproducibility."""
 
 import csv
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -8,7 +9,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "data"
+# scripts/refresh_data.py points this at a staged rebuild before it is applied.
+DATA = Path(os.environ.get("FLOW_DATA_CHECK_DIR", ROOT / "data"))
 CACHE = ROOT / "experiments" / "feature_candidates"
 UNITS = ["efficiency", "one_bedroom", "two_bedroom", "three_bedroom", "four_bedroom"]
 BUILT = [
@@ -99,7 +101,7 @@ def test_co_living_listings_are_unique_sourced_and_priced():
 
 
 INPUTS = [
-    CACHE / "census" / "2023_Gaz_zcta_national.txt",
+    max(CACHE.glob("census/*_Gaz_zcta_national.txt"), default=CACHE / "census" / "missing_Gaz"),
     CACHE / "census" / "b08301.dat",
     CACHE / "census" / "zbp_miami.csv",
     CACHE / "noise" / "noise_by_zip.csv",
@@ -109,6 +111,7 @@ INPUTS = [
 ]
 
 
+@pytest.mark.skipif("FLOW_DATA_CHECK_DIR" in os.environ, reason="checking a staged refresh")
 def test_build_script_reproduces_committed_files(tmp_path):
     missing = [str(p.relative_to(ROOT)) for p in INPUTS if not p.exists()]
     if missing:

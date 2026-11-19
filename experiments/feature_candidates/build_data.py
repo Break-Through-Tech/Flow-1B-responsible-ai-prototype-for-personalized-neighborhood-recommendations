@@ -3,6 +3,8 @@
 Run from the repo root:
     python experiments/feature_candidates/build_data.py <gazetteer.txt> <census_dir> [out_dir]
 out_dir defaults to data/; tests rebuild into a temporary folder and compare.
+noise/ and joana/ are read next to census_dir (census_dir/../noise, ../joana), so a
+staged refresh (scripts/refresh_data.py) can build from its own inputs folder.
 
 Inputs (see docs/HANDOFF.md for download URLs):
 - 2023 Census Gazetteer ZCTA file (land area, internal point)
@@ -18,6 +20,7 @@ Outputs raw counts only; the engine does all scaling so it stays reviewable.
 """
 
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -25,6 +28,9 @@ gazetteer, census = Path(sys.argv[1]), Path(sys.argv[2])
 data = Path("data")  # inputs
 out = Path(sys.argv[3]) if len(sys.argv) > 3 else data  # outputs
 out.mkdir(parents=True, exist_ok=True)
+inputs = census.parent
+vintages = json.loads((census / "sources.json").read_text(encoding="utf-8")) if (census / "sources.json").exists() else {}
+ZBP = f"ZIP Code Business Patterns {vintages.get('zbp_year', 2021)}"
 zips = [z.strip() for z in (data / "miami_dade_zctas.txt").read_text(encoding="utf-8").splitlines() if z.strip()]
 
 
@@ -35,13 +41,15 @@ def acs(table):
 
 geo = {}
 with gazetteer.open(encoding="utf-8", newline="") as f:
-    for row in csv.DictReader(f, delimiter="\t"):
+    sep = "|" if "|" in f.readline() else "\t"  # the Gazetteer is pipe-delimited from 2025 on
+    f.seek(0)
+    for row in csv.DictReader(f, delimiter=sep):
         row = {k.strip(): v.strip() for k, v in row.items()}
         geo[row["GEOID"]] = row
 commute = acs("b08301")
 noise = {
     r["zip"]: r["share_ge_55"]
-    for r in csv.DictReader(open(Path(__file__).parent / "noise" / "noise_by_zip.csv", encoding="utf-8", newline=""))
+    for r in csv.DictReader(open(inputs / "noise" / "noise_by_zip.csv", encoding="utf-8", newline=""))
 }
 estab, city = {}, {}
 with (census / "zbp_miami.csv").open(encoding="utf-8", newline="") as f:
@@ -72,7 +80,7 @@ with open(out / "census_features.csv", "w", newline="", encoding="utf-8") as tar
             e.get("722///", 0), noise.get(z, ""),
         ])
 
-joana = Path(__file__).parent / "joana"
+joana = inputs / "joana"
 names = {r["zip_code"]: r for r in csv.DictReader(open(joana / "area-name.csv", encoding="utf-8-sig", newline=""))}
 NAME_SOURCE = "Joana area-name.csv (USPS City State Product; Census 2020 ZCTA-to-Place)"
 with open(out / "zip_area_names.csv", "w", newline="", encoding="utf-8") as target:
@@ -116,7 +124,7 @@ for r in csv.DictReader(open(data / "area_features.csv", encoding="utf-8-sig", n
         aliases.setdefault((r["area_name"], r["zip"]), ("primary", "area_features.csv area_name"))
 for z in zips:
     if city.get(z):
-        aliases.setdefault((city[z], z), ("primary", "USPS city, ZIP Code Business Patterns 2021"))
+        aliases.setdefault((city[z], z), ("primary", f"USPS city, {ZBP}"))
 for z, r in names.items():
     if z in zips:
         aliases.setdefault((r["primary_area_name"], z), ("primary", NAME_SOURCE))

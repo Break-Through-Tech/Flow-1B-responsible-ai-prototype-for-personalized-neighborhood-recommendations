@@ -1,0 +1,11 @@
+{
+  "refreshed": null,
+  "note": "Source vintages of the built data files; scripts/refresh_data.py updates this on apply.",
+  "vintages": {
+    "acs_year": 2022,
+    "zbp_year": 2021,
+    "gazetteer_year": 2023,
+    "noise_year": 2020,
+    "hud_fy": 2026
+  }
+}
