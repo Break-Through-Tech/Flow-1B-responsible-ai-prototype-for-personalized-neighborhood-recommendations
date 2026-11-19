@@ -387,3 +387,58 @@ def test_stdio_flow_data_dir_and_cli_override(data_dir, tmp_path):
             assert actual == Recommender(DATA).recommend(request(budget_max=2500))
 
     asyncio.run(scenario())
+
+
+def test_stdio_listing_provenance_agrees_with_ethics_policy(data_dir):
+    fields = [
+        "property",
+        "zip",
+        "per_bedroom_rent_from",
+        "per_bedroom_rent_to",
+        "observed",
+        "sources",
+        "confidence",
+        "notes",
+    ]
+    with (data_dir / "co_living_listings.csv").open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        writer.writerow(
+            dict(
+                zip(
+                    fields,
+                    [
+                        "Unconfirmed house",
+                        "00001",
+                        1000,
+                        "",
+                        "2026-11-18",
+                        "https://example.org/snapshot",
+                        "low",
+                        "Address inferred; verify with the operator.",
+                    ],
+                )
+            )
+        )
+
+    async def scenario():
+        async with session(data_dir, ROOT) as client:
+            response = payload(
+                await client.call_tool(
+                    "recommend",
+                    request(budget_max=1100, housing_preference="co_living", tags=["co_living"]),
+                )
+            )
+            listing = response["results"][0]["co_living_listings"][0]
+            assert listing["confidence"] == "low"
+            assert listing["sources"] == "https://example.org/snapshot"
+            assert listing["notes"] == "Address inferred; verify with the operator."
+            assert any(
+                "Unconfirmed house" in text and "unverified" in text
+                for text in response["warnings"]
+            )
+            policy = payload(await client.call_tool("ethics", {}))
+            assert "co_living_listings.csv" in policy["data_limits"]["rent"]
+            assert "Co-living room prices are unavailable" not in policy["data_limits"]["rent"]
+
+    asyncio.run(scenario())

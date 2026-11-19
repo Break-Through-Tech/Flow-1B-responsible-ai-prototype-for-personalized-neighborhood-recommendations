@@ -809,3 +809,85 @@ def test_missing_neighborhood_mapping_path_is_an_error(monkeypatch, capsys):
     with pytest.raises(SystemExit):
         module.main()
     assert "neighborhood mapping not found" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("scorer", ["mean", "cosine"])
+@pytest.mark.parametrize("quiet,low_noise", [(1, 3), (3, 1), (2, 2)])
+def test_duplicate_noise_preserves_the_strongest_priority(tmp_path, scorer, quiet, low_noise):
+    census_snapshot(
+        tmp_path,
+        [area("00001"), area("00002"), area("00003")],
+        {
+            "00001": (90, 0.4, 40, 30, 100),
+            "00002": (2, 0.0, 1, 1, 100),
+            "00003": (50, 0.2, 20, 15, 100),
+        },
+    )
+    engine = Recommender(tmp_path, scorer=scorer)
+    both = engine.recommend(
+        request(
+            tags=["transit", "quiet", "low_noise"],
+            weights={"quiet": quiet, "low_noise": low_noise},
+        )
+    )
+    equivalent = engine.recommend(
+        request(tags=["transit", "quiet"], weights={"quiet": max(quiet, low_noise)})
+    )
+    assert both["results"] == equivalent["results"]
+    assert both["feature_order"] == equivalent["feature_order"]
+    assert both["preference_vector"] == equivalent["preference_vector"]
+    assert "low_noise" not in both["feature_order"]
+
+
+def test_listing_confidence_sources_and_notes_reach_the_user(tmp_path):
+    census_snapshot(tmp_path, [area("00001", 1500)], {"00001": (10, 0.1, 10, 10, 100)})
+    fields = [
+        "property",
+        "zip",
+        "per_bedroom_rent_from",
+        "per_bedroom_rent_to",
+        "observed",
+        "sources",
+        "confidence",
+        "notes",
+    ]
+    record = dict(
+        zip(
+            fields,
+            [
+                "Unconfirmed house",
+                "00001",
+                1000,
+                "",
+                "2026-11-18",
+                "https://example.org/snapshot",
+                "low",
+                "Address inferred; verify with the operator.",
+            ],
+        )
+    )
+    write_csv(tmp_path / "co_living_listings.csv", fields, [record])
+    engine = Recommender(tmp_path)
+    response = engine.recommend(coliving_request(1100))
+    listing = response["results"][0]["co_living_listings"][0]
+    for field in ("observed", "sources", "confidence", "notes"):
+        assert listing[field] == record[field]
+    assert any(
+        "Unconfirmed house" in warning and "unverified" in warning
+        for warning in response["warnings"]
+    )
+    assert not any(
+        "Unconfirmed house" in warning
+        for warning in engine.recommend(coliving_request(900))["warnings"]
+    )
+
+
+def test_legacy_listing_metadata_is_unknown_not_verified(tmp_path):
+    census_snapshot(tmp_path, [area("00001", 1500)], {"00001": (10, 0.1, 10, 10, 100)})
+    listings(tmp_path, [("Legacy property", "00001", 1000, "")])
+    response = Recommender(tmp_path).recommend(coliving_request(1100))
+    listing = response["results"][0]["co_living_listings"][0]
+    assert listing["confidence"] == "unknown" and listing["sources"] == "test"
+    assert any(
+        "Legacy property" in warning and "unverified" in warning for warning in response["warnings"]
+    )

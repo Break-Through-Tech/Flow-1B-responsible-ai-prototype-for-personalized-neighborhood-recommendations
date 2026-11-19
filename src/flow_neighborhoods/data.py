@@ -231,6 +231,10 @@ def load_co_living(directory: Path) -> tuple[dict[str, list[dict]], dict]:
                 "per_bedroom_rent_from": low,
                 "per_bedroom_rent_to": high,
                 "observed": row["observed"].strip(),
+                "sources": row["sources"].strip(),
+                # Older snapshots may omit these optional fields. Unknown is not verified.
+                "confidence": (row.get("confidence") or "unknown").strip().lower(),
+                "notes": (row.get("notes") or "").strip(),
             }
         )
     return listings, {path.name: digest(path)}
