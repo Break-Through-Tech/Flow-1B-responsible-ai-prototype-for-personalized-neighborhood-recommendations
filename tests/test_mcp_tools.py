@@ -70,6 +70,30 @@ def data_dir(tmp_path):
         [{"alias": "Test Town", "zip": "00001", "match": "primary", "source": "test"}],
     )
     write(
+        "rents_hud.csv",
+        [
+            "zip",
+            "efficiency",
+            "one_bedroom",
+            "two_bedroom",
+            "three_bedroom",
+            "four_bedroom",
+            "source",
+        ],
+        [
+            {
+                "zip": z,
+                "efficiency": r,
+                "one_bedroom": r,
+                "two_bedroom": r,
+                "three_bedroom": r,
+                "four_bedroom": r,
+                "source": "test",
+            }
+            for z, r in (("00001", 1500), ("00002", 1501))
+        ],
+    )
+    write(
         "census_features.csv",
         [
             "zip",
@@ -219,9 +243,7 @@ def test_stdio_discovery_and_all_repository_profiles(tmp_path, scorer):
                     args["k"] = k
                     actual = payload(await client.call_tool("recommend", args))
                     assert actual == engine.recommend(args)
-                    assert all(
-                        0 < r["median_rent_usd"] <= args["budget_max"] for r in actual["results"]
-                    )
+                    assert all(0 < r["rent_usd"] <= args["budget_max"] for r in actual["results"])
 
     asyncio.run(scenario())
 
@@ -363,5 +385,60 @@ def test_stdio_flow_data_dir_and_cli_override(data_dir, tmp_path):
         async with session(DATA, ROOT, env_dir=tmp_path / "nonexistent") as client:
             actual = payload(await client.call_tool("recommend", request(budget_max=2500)))
             assert actual == Recommender(DATA).recommend(request(budget_max=2500))
+
+    asyncio.run(scenario())
+
+
+def test_stdio_listing_provenance_agrees_with_ethics_policy(data_dir):
+    fields = [
+        "property",
+        "zip",
+        "per_bedroom_rent_from",
+        "per_bedroom_rent_to",
+        "observed",
+        "sources",
+        "confidence",
+        "notes",
+    ]
+    with (data_dir / "co_living_listings.csv").open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        writer.writerow(
+            dict(
+                zip(
+                    fields,
+                    [
+                        "Unconfirmed house",
+                        "00001",
+                        1000,
+                        "",
+                        "2026-11-18",
+                        "https://example.org/snapshot",
+                        "low",
+                        "Address inferred; verify with the operator.",
+                    ],
+                )
+            )
+        )
+
+    async def scenario():
+        async with session(data_dir, ROOT) as client:
+            response = payload(
+                await client.call_tool(
+                    "recommend",
+                    request(budget_max=1100, housing_preference="co_living", tags=["co_living"]),
+                )
+            )
+            listing = response["results"][0]["co_living_listings"][0]
+            assert listing["confidence"] == "low"
+            assert listing["sources"] == "https://example.org/snapshot"
+            assert listing["notes"] == "Address inferred; verify with the operator."
+            assert any(
+                "Unconfirmed house" in text and "unverified" in text
+                for text in response["warnings"]
+            )
+            policy = payload(await client.call_tool("ethics", {}))
+            assert "co_living_listings.csv" in policy["data_limits"]["rent"]
+            assert "Co-living room prices are unavailable" not in policy["data_limits"]["rent"]
 
     asyncio.run(scenario())

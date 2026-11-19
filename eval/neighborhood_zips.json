@@ -1,0 +1,63 @@
+{
+  "source": "Karla Reyes (challenge advisor), feedback to Om, November 2026: residential ZIP codes per neighborhood. Downtown is not in her table and keeps the single ZIP from the original profiles.",
+  "overlap_rule": "Residential addresses are not available to resolve ZIPs that span neighborhoods, so a shared ZIP counts as a match for each neighborhood listed for it.",
+  "neighborhoods": {
+    "Wynwood": [
+      "33127",
+      "33137"
+    ],
+    "Brickell": [
+      "33129",
+      "33130",
+      "33131"
+    ],
+    "Coconut Grove": [
+      "33133",
+      "33129"
+    ],
+    "Coral Gables": [
+      "33133",
+      "33134",
+      "33143",
+      "33144",
+      "33145",
+      "33146",
+      "33156",
+      "33158"
+    ],
+    "Pinecrest": [
+      "33156",
+      "33143"
+    ],
+    "Downtown": [
+      "33128"
+    ],
+    "Kendall": [
+      "33175",
+      "33176",
+      "33183",
+      "33186"
+    ],
+    "West Kendall": [
+      "33185",
+      "33187",
+      "33193",
+      "33196"
+    ],
+    "Doral": [
+      "33122",
+      "33166",
+      "33172",
+      "33178",
+      "33182",
+      "33194"
+    ]
+  },
+  "partial_zips": {
+    "33129": "Brickell, plus the northern Grove portion (Coconut Grove)",
+    "33133": "Coconut Grove and Coral Gables",
+    "33143": "Coral Gables, plus the portion within the Village of Pinecrest",
+    "33156": "Coral Gables and Pinecrest"
+  },
+  "proposed_suburbs": "Kendall, West Kendall and Doral were added Nov 12 at the advisor's request to include suburbs. ZIPs combine Joana's sourced area names (data/zip_area_names.csv) with the starter area_features labels; pending the advisor's review."
+}

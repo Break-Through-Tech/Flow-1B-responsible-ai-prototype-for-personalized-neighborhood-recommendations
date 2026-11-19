@@ -7,8 +7,17 @@ import re
 from pathlib import Path
 
 from . import nlp_bridge
-from .contracts import ALL_FEATURES, Request, ValidationError
-from .data import DataError, apply_census, load_places, load_snapshot, normalize_name
+from .contracts import ALL_FEATURES, OPTIONAL_FEATURES, Request, ValidationError
+from .data import (
+    DataError,
+    apply_census,
+    load_co_living,
+    load_places,
+    load_rents,
+    load_snapshot,
+    normalize_name,
+    percentiles,
+)
 
 # "mean" averages the requested features (weighted by priority), so strengths
 # the user did not ask for never lower a score. "cosine" is the original
@@ -19,6 +28,39 @@ SCORERS = {"mean": "mean-v1", "cosine": "cosine-v1"}
 # and quiet with measured values (see data.apply_census). "provided" ranks on
 # area_features_cleaned.csv as is, kept for comparison.
 FEATURE_SETS = ("census", "provided")
+# Rent compared with the budget. "hud": HUD Small Area Fair Market Rent for the unit
+# size the household needs (advisor asked for 2026 rents by comparable unit size;
+# HUD is the complete stand-in until ZIP-level asking rents by size are available).
+# "acs": ACS 2018-22 median gross rent, all unit sizes (the original basis).
+RENT_BASES = ("hud", "acs")
+RENT_LABELS = {
+    "efficiency": "studio",
+    "one_bedroom": "1-bedroom",
+    "two_bedroom": "2-bedroom",
+}
+
+
+def rent_unit(request: Request) -> str:
+    """Unit size the household needs: co-leasers a 2-bedroom; co-living a studio as a
+    stand-in for per-bedroom rent; otherwise a 1-bedroom."""
+    if request.housing_preference == "co_living":
+        return "efficiency"
+    return "two_bedroom" if request.household == "with_co_leaser" else "one_bedroom"
+
+
+# "Also consider" (advisor, Nov 12: recommend beyond what users think they need). Up to
+# ALSO_CONSIDER eligible ZIPs outside the top results' neighborhoods, chosen by a blend of
+# the request score and how popular the area is with recent movers.
+ALSO_CONSIDER = 2
+STRENGTH = 0.75  # a feature at or above this (0-1 scale) is named as a strength
+STRENGTH_LABELS = {
+    "transit": "transit",
+    "social": "restaurants and nightlife",
+    "walkable": "walkability",
+    "low_noise": "low road and aircraft noise",
+    "quiet": "quiet",
+}
+
 # A name covering more ZIPs than this (e.g. "Miami") is too broad to mean "near".
 MAX_NEAR_ZIPS = 10
 
@@ -35,15 +77,23 @@ def miles(a: dict, b: dict) -> float:
 
 class Recommender:
     def __init__(
-        self, data_dir: str | Path = "data", scorer: str = "mean", feature_set: str = "census"
+        self,
+        data_dir: str | Path = "data",
+        scorer: str = "mean",
+        feature_set: str = "census",
+        rent_basis: str | None = None,
     ):
         if scorer not in SCORERS:
             raise ValueError(f"scorer must be one of {', '.join(SCORERS)}.")
         if feature_set not in FEATURE_SETS:
             raise ValueError(f"feature_set must be one of {', '.join(FEATURE_SETS)}.")
+        rent_basis = rent_basis or ("hud" if feature_set == "census" else "acs")
+        if rent_basis not in RENT_BASES:
+            raise ValueError(f"rent_basis must be one of {', '.join(RENT_BASES)}.")
         self.scorer = scorer
         self.model_version = SCORERS[scorer]
         self.feature_set = feature_set
+        self.rent_basis = rent_basis
         directory = Path(data_dir)
         self.data_dir = directory
         self.areas, self.evidence, self.data_version = load_snapshot(directory)
@@ -51,11 +101,91 @@ class Recommender:
         self.data_version.update(versions)
         if feature_set == "census":
             self.data_version.update(apply_census(directory, self.areas, self.geography))
+        self.rents, self.co_living, self.has_listings = {}, {}, False
+        if rent_basis == "hud":
+            self.rents, versions = load_rents(directory)
+            self.data_version.update(versions)
+            # Advisor: co-living budgets use the per-bedroom rent of listed properties.
+            self.co_living, versions = load_co_living(directory)
+            self.data_version.update(versions)
+            # A present-but-empty registry means "no listed co-living", not the HUD fallback.
+            self.has_listings = bool(versions)
+        # Recent move-in rate (share of residents who moved in the past year), as a
+        # percentile: "why people are moving there". Behavior, not demographics.
+        movers = {
+            a["zip"]: float(a["migration_score"])
+            if str(a.get("migration_score", "")).strip()
+            else None
+            for a in self.areas
+        }
+        self.mover_rank = percentiles(movers)
         self.constant_features = {}
-        for feature in ALL_FEATURES:
+        for feature in (*ALL_FEATURES, *OPTIONAL_FEATURES):
             values = {area[feature] for area in self.areas if area[feature] is not None}
             if len(self.areas) > 1 and len(values) == 1:
                 self.constant_features[feature] = values.pop()
+
+    def uses_listings(self, request: Request) -> bool:
+        return request.housing_preference == "co_living" and self.has_listings
+
+    def rent_label(self, request: Request) -> str:
+        if self.uses_listings(request):
+            return "Per-bedroom rent from co-living listings (lowest 'from' price)"
+        if self.rent_basis == "hud":
+            return f"HUD Small Area Fair Market Rent, {RENT_LABELS[rent_unit(request)]}"
+        return "ACS 2018-22 median gross rent, all unit sizes"
+
+    def also_consider(self, candidates: list[dict], results: list[dict], request: Request):
+        """Eligible ZIPs beyond the top results, in different neighborhoods, with a reason."""
+        by_zip = {a["zip"]: a for a in self.areas}
+
+        def hood(z):
+            return self.geography.get(z, {}).get("neighborhood") or by_zip[z]["area_name"]
+
+        taken = {r["zip"] for r in results}
+        seen = {hood(z) for z in taken}
+        pool = [c for c in candidates if c["zip"] not in taken]
+        pool.sort(
+            key=lambda c: (
+                -(0.5 * c["score"] + 0.5 * (self.mover_rank.get(c["zip"]) or 0)),
+                c["zip"],
+            )
+        )
+        picks = []
+        for c in pool:
+            if len(picks) == ALSO_CONSIDER:
+                break
+            if hood(c["zip"]) in seen:
+                continue
+            seen.add(hood(c["zip"]))
+            area = by_zip[c["zip"]]
+            strengths = [
+                label
+                for f, label in STRENGTH_LABELS.items()
+                if f not in request.tags
+                and area.get(f) is not None
+                and area[f] >= STRENGTH
+                and not (f == "quiet" and self.feature_set == "census")  # noise stand-in
+            ]
+            mover = self.mover_rank.get(c["zip"])
+            why = [f"also strong on {', '.join(strengths)}"] if strengths else []
+            if mover is not None and mover >= STRENGTH:
+                why.append(
+                    f"popular with recent movers (top {round((1 - mover) * 100) or 1}% of ZIPs)"
+                )
+            picks.append(
+                {
+                    "zip": c["zip"],
+                    "area_name": c["area_name"],
+                    "neighborhood": self.geography.get(c["zip"], {}).get("neighborhood"),
+                    "rent_usd": c["rent_usd"],
+                    "rent_basis": c["rent_basis"],
+                    "score": c["score"],
+                    "mover_percentile": mover,
+                    "why": why or ["fits your budget in a different part of town"],
+                }
+            )
+        return picks
 
     def crowd_themes(self, zip_code: str) -> dict:
         if not isinstance(zip_code, str) or not re.fullmatch(r"[0-9]{5}", zip_code):
@@ -124,9 +254,22 @@ class Recommender:
         if self.scorer == "mean":
             selected = [(f, u) for f, u in zip(features, user) if u]
             features, user = tuple(f for f, _ in selected), tuple(u for _, u in selected)
+        if self.duplicate_noise(request):
+            # One underlying measure, but neither requested priority may be lost.
+            priority = float(max(request.weight("quiet"), request.weight("low_noise")))
+            kept = [
+                (f, priority if f == "quiet" else u)
+                for f, u in zip(features, user)
+                if f != "low_noise"
+            ]
+            features, user = tuple(f for f, _ in kept), tuple(u for _, u in kept)
         if request.near:
             features, user = (*features, "near"), (*user, float(request.weight("near")))
         return features, user
+
+    def duplicate_noise(self, request: Request) -> bool:
+        """quiet uses the noise measure as a stand-in, so quiet + low_noise would count it twice."""
+        return self.feature_set == "census" and {"quiet", "low_noise"} <= set(request.tags)
 
     def score(self, vector: list[float], user: tuple[float, ...]) -> list[float]:
         """Per-feature contributions; their sum is the area's score."""
@@ -142,7 +285,20 @@ class Recommender:
         excluded = {"missing_rent": 0, "over_budget": 0, "missing_features": 0}
         candidates = []
         for area in self.areas:
-            rent = area["median_rent_usd"]
+            listings = self.co_living.get(area["zip"], []) if self.uses_listings(request) else []
+            if self.uses_listings(request):
+                # Only ZIPs with a listed private bedroom in a shared apartment qualify.
+                rent = min((x["per_bedroom_rent_from"] for x in listings), default=None)
+            elif self.rent_basis == "hud":
+                # HUD also publishes benchmarks for ZIPs with no rental housing (PO boxes,
+                # the air reserve base); ACS finding no rental market keeps them excluded.
+                rent = (
+                    self.rents.get(area["zip"], {}).get(rent_unit(request))
+                    if area["median_rent_usd"] is not None
+                    else None
+                )
+            else:
+                rent = area["median_rent_usd"]
             if rent is None:
                 excluded["missing_rent"] += 1
                 continue
@@ -164,8 +320,14 @@ class Recommender:
                 "other_areas": list(self.geography.get(area["zip"], {}).get("other_areas", [])),
                 "score": min(1.0, sum(contributions)),
                 "score_method": self.model_version,
-                "median_rent_usd": rent,
-                "rent_source": "area_features_cleaned.csv",
+                "rent_usd": rent,
+                "rent_basis": self.rent_label(request),
+                "median_rent_usd": area["median_rent_usd"],
+                "rent_source": "co_living_listings.csv"
+                if self.uses_listings(request)
+                else "rents_hud.csv"
+                if self.rent_basis == "hud"
+                else "area_features_cleaned.csv",
                 "source_period": None,
                 "matched_preferences": [
                     {
@@ -180,6 +342,11 @@ class Recommender:
             }
             if near:
                 item["distance_miles"] = round(near[area["zip"]][0], 1)
+            if listings:
+                # Only the properties whose per-bedroom rent fits the budget.
+                item["co_living_listings"] = [
+                    dict(x) for x in listings if x["per_bedroom_rent_from"] <= request.budget_max
+                ]
             if "measures" in area:
                 item["measures"] = dict(area["measures"])
             if "transit_service" in self.geography.get(area["zip"], {}):
@@ -204,14 +371,25 @@ class Recommender:
             "applied_filters": {
                 "budget_max": request.budget_max,
                 "budget_basis": "household_total_monthly_usd",
-                "rent_field": "median_rent_usd",
+                "rent_basis": self.rent_label(request),
                 "household": request.household,
                 "housing_preference": request.housing_preference,
                 "weights": {tag: request.weight(tag) for tag in request.tags},
                 "near": {},
             },
             "warnings": [
-                "Rent is a snapshot area-level estimate; actual prices and availability are unverified.",
+                (
+                    "Budget is compared with each listed property's per-bedroom 'from' price; "
+                    "actual prices and availability are unverified."
+                    if self.uses_listings(request)
+                    else f"Budget is compared with the HUD Small Area Fair Market Rent for a "
+                    f"{RENT_LABELS[rent_unit(request)]}: a benchmark, not an asking rent. Zillow "
+                    "2026 asking rents run about 17% higher where available. Actual prices and "
+                    "availability are unverified."
+                    if self.rent_basis == "hud"
+                    else "Rent is an ACS 2018-22 area median for all unit sizes, well below 2026 "
+                    "rents; actual prices and availability are unverified."
+                ),
                 "Lifestyle scores are starter proxies. All text evidence is demo content."
                 if self.feature_set == "provided"
                 else "transit and walkable are commute shares of residents (ACS 2018-22); social "
@@ -226,6 +404,22 @@ class Recommender:
                 f"Budget is treated as the household's total: ${request.budget_max:,.0f} a month "
                 "for you and your co-leaser combined, not each person's share. Median rent covers "
                 "all unit sizes; a 2-bedroom usually costs more."
+            )
+        if "quiet" in request.tags and self.feature_set == "census":
+            response["warnings"].append(
+                "quiet is approximated by low road and aviation noise until a measure of "
+                "residential character (quiet residential streets) is available."
+            )
+        if self.duplicate_noise(request):
+            response["warnings"].append(
+                "quiet and low_noise use the same noise measure for now, so low_noise is not "
+                "counted a second time. The shared measure uses the higher requested priority "
+                f"({max(request.weight('quiet'), request.weight('low_noise'))})."
+            )
+        if "low_noise" in request.tags and self.feature_set == "provided":
+            response["warnings"].append(
+                "low_noise is only measured in the census feature set; with starter features "
+                "no area has a value for it."
             )
         clarification = request.clarification()
         if clarification:
@@ -244,8 +438,16 @@ class Recommender:
         response["feature_order"] = list(features)
         response["preference_vector"] = list(user)
         if request.housing_preference == "co_living":
+            count = sum(len(v) for v in self.co_living.values())
             response["warnings"].append(
-                "Co-living room prices are unavailable; area rent is a proxy."
+                f"Co-living only includes ZIPs with a listed private bedroom in a shared "
+                f"apartment ({count} properties); rent is the lowest per-bedroom 'from' price, "
+                "which may reflect specials. Availability is unverified."
+                if self.uses_listings(request)
+                else "Co-living room prices are not yet included; the HUD studio rent stands in "
+                "for per-bedroom rent."
+                if self.rent_basis == "hud"
+                else "Co-living room prices are unavailable; area rent is a proxy."
             )
         for feature, weight in zip(features, user):
             if weight and feature in self.constant_features:
@@ -258,6 +460,28 @@ class Recommender:
         for rank, item in enumerate(results, 1):
             item["rank"] = rank
             item["themes"] = self.crowd_themes(item["zip"])["evidence"]
+        response["also_consider"] = self.also_consider(candidates, results, request)
+        if response["also_consider"]:
+            response["warnings"].append(
+                "also_consider lists areas outside your top matches, picked for strengths you "
+                "did not ask for and popularity with recent movers; they fit your budget but "
+                "rank lower on your stated priorities."
+            )
+        uncertain = sorted(
+            {
+                listing["property"]
+                for item in results
+                for listing in item.get("co_living_listings", [])
+                if listing["confidence"] not in {"high", "medium"}
+            }
+        )
+        if uncertain:
+            response["warnings"].append(
+                "Low-confidence or unverified co-living records: "
+                + ", ".join(uncertain)
+                + ". Preserve each listing's sources, confidence and notes; verify its "
+                "property/address association before relying on it."
+            )
         response.update(
             results=results,
             eligible_count=len(candidates),

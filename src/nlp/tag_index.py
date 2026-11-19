@@ -35,7 +35,8 @@ def build_index(snippets, tagged, vocab, model):
             quote = t.get("evidence") or ""
             # Keep a tag only if its quote is really in the review. Re-checked here so
             # cached entries from older runs cannot publish an invented quote.
-            if not quote or normalize(quote) not in text:
+            normalized_quote = normalize(quote) if isinstance(quote, str) else ""
+            if not normalized_quote or normalized_quote not in text:
                 continue
             for name in with_parents(vocab, [t["tag"]]):
                 rec = loc["tags"].setdefault(

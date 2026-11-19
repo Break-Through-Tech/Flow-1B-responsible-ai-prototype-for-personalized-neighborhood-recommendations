@@ -160,6 +160,8 @@ def parse_response(raw, batch, vocab):
                             "tag": name,
                             "evidence": evidence,
                             "evidence_found": bool(evidence)
+                            and isinstance(evidence, str)
+                            and bool(normalize(evidence))
                             and normalize(evidence) in normalize(texts[sid]),
                         }
                     )
