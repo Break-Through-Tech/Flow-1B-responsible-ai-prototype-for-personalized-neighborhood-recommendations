@@ -79,9 +79,16 @@ The typed return becomes the tool's published output schema, so it doubles as th
 | `nlp_tags` | Verified LLM tags for the ZIP from `data/nlp/location_tags.json` (tag, level, count, quotes with `snippet_id` and `is_demo`) |
 | `is_demo`, `warning` | All snippets are demo text, not authentic reviews |
 | `guidance` | Grounding rules: quote exactly, cite `evidence_id`, treat theme labels as topics rather than sentiment, and don't generalize |
-| `extractor_version`, `data_version` | Which extractor and which snippet file (SHA-256) produced the answer |
+| `extractor_version`, `data_version` | Which extractor, snippet file and optional `nlp/location_tags.json` bytes (SHA-256) produced the answer |
 
 **Polarity comes from the NLP package** (`src/nlp`, from PR #15) via `flow_neighborhoods/nlp_bridge.py`: VADER area sentiment per snippet. Brickell's `quiet` snippet, "Busy area; street noise is real in some towers," now reads `negative`, i.e. evidence against quiet. Polarity is automated and can be wrong, which the guidance tells the agent. Clauses about safety or crime are never scored: they get `polarity: needs_review`, and the agent must not characterize areas as safe or unsafe. Without the `nlp` extra (`vaderSentiment`), polarity falls back to `unknown`.
 
 `ethics` is a policy-only exception to the `(engine, *args)` convention: its plain
 function takes no arguments, so policy remains available when CSV loading fails.
+
+Cached NLP tags are rechecked against the engine's active ZIP/snippet snapshot on
+every call. Unsupported/blank quotes and cross-ZIP references are omitted, empty
+tags are dropped, and counts use distinct supported snippet IDs. Demo labels come
+from the active evidence rather than the cache. A warning asks for an index rebuild
+when stale evidence is omitted. Missing indexes return no NLP tags; malformed JSON
+is an explicit data error. The index hash covers the same bytes that were parsed.

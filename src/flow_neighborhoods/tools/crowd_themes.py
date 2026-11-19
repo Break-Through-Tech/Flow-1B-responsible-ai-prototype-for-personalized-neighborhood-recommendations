@@ -1,11 +1,13 @@
 """crowd_themes tool: review snippets and theme labels for one ZIP."""
 
+import hashlib
 import json
 import re
 from collections import Counter
 from typing import Literal, TypedDict
 
 from ..contracts import ValidationError
+from ..data import DataError
 from ..engine import Recommender
 
 
@@ -58,29 +60,58 @@ GUIDANCE = (
 )
 
 
-def nlp_tags(engine: Recommender, zip_code: str) -> list[NlpTag]:
-    """Verified LLM tags for the ZIP from data/nlp/location_tags.json (empty if absent)."""
+def nlp_tags(engine: Recommender, zip_code: str) -> tuple[list[NlpTag], dict[str, str], int]:
+    """Only publish quotes grounded in this engine's active ZIP/snippet snapshot.
+
+    A cached index may predate a CSV refresh. Never trust its quote, count or demo
+    label just because it was checked when that index was originally built.
+    """
     path = engine.data_dir / "nlp" / "location_tags.json"
-    if not path.exists():
-        return []
-    tags = json.loads(path.read_text(encoding="utf-8")).get("locations", {}).get(zip_code, {})
-    out = [
-        {
-            "tag": name,
-            "level": record.get("level", "parent"),
-            "count": int(record["count"]),
-            "quotes": [
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        return [], {}, 0
+    versions = {"nlp/location_tags.json": hashlib.sha256(raw).hexdigest()}
+    try:
+        index = json.loads(raw.decode("utf-8-sig"))
+    except (ValueError, UnicodeError) as exc:
+        raise DataError("NLP tag index must be valid UTF-8 JSON.") from exc
+    if not isinstance(index, dict) or not isinstance(index.get("locations"), dict):
+        raise DataError("NLP tag index must contain a locations object.")
+    location = index["locations"].get(zip_code, {})
+    if not isinstance(location, dict) or not isinstance(location.get("tags", {}), dict):
+        raise DataError("NLP tag index must contain a tags object per ZIP.")
+    active = {item["evidence_id"]: item for item in engine.evidence.get(zip_code, [])}
+    out, rejected = [], 0
+    for name, record in location.get("tags", {}).items():
+        if not isinstance(record, dict) or not isinstance(record.get("evidence"), list):
+            raise DataError("NLP tag records must contain an evidence list.")
+        level = record.get("level", "parent")
+        if not isinstance(level, str):
+            raise DataError("NLP tag levels must be strings.")
+        quotes, seen = [], set()
+        for cached in record["evidence"]:
+            sid = cached.get("snippet_id") if isinstance(cached, dict) else None
+            quote = cached.get("quote") if isinstance(cached, dict) else None
+            source = active.get(sid) if isinstance(sid, str) else None
+            quote = quote.strip() if isinstance(quote, str) else ""
+            if not source or not quote or quote not in source["text"]:
+                rejected += 1
+                continue
+            if (sid, quote) in seen:
+                continue
+            seen.add((sid, quote))
+            quotes.append({"snippet_id": sid, "quote": quote, "is_demo": source["is_demo"]})
+        if quotes:
+            out.append(
                 {
-                    "snippet_id": e["snippet_id"],
-                    "quote": e["quote"],
-                    "is_demo": bool(e.get("is_demo", True)),
+                    "tag": name,
+                    "level": level,
+                    "count": len({quote["snippet_id"] for quote in quotes}),
+                    "quotes": quotes,
                 }
-                for e in record["evidence"]
-            ],
-        }
-        for name, record in tags.get("tags", {}).items()
-    ]
-    return sorted(out, key=lambda t: (-t["count"], t["tag"]))
+            )
+    return sorted(out, key=lambda t: (-t["count"], t["tag"])), versions, rejected
 
 
 def crowd_themes(engine: Recommender, zip_code: str) -> CrowdThemes:
@@ -98,6 +129,13 @@ def crowd_themes(engine: Recommender, zip_code: str) -> CrowdThemes:
     result = engine.crowd_themes(zip_code.strip())
     names = {area["zip"]: area["area_name"] for area in engine.areas}
     status = result["status"] if result["known_area"] else "unknown_area"
+    tags, tag_versions, rejected = nlp_tags(engine, result["zip"])
+    warning = result["warning"]
+    if rejected:
+        warning += (
+            " Cached NLP quotes unsupported by the current ZIP/snippet snapshot were omitted; "
+            "rebuild the NLP index after refreshing review data."
+        )
     return {
         "zip": result["zip"],
         "area_name": names.get(result["zip"]),
@@ -114,14 +152,15 @@ def crowd_themes(engine: Recommender, zip_code: str) -> CrowdThemes:
             for theme in sorted({e["theme"] for e in result["evidence"]})
         },
         "evidence": result["evidence"],
-        "nlp_tags": nlp_tags(engine, result["zip"]),
+        "nlp_tags": tags,
         "is_demo": result["is_demo"],
         "extractor_version": result["extractor_version"],
-        "warning": result["warning"],
+        "warning": warning,
         "guidance": GUIDANCE,
         "data_version": {
             name: digest
             for name, digest in engine.data_version.items()
             if name == "crowd_text_snippets.csv"
-        },
+        }
+        | tag_versions,
     }
