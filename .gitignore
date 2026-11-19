@@ -78,3 +78,6 @@ Desktop.ini
 experiments/feature_candidates/census/
 experiments/feature_candidates/noise/
 experiments/feature_candidates/joana/
+
+# NLP (from PR #15)
+*.pyc
