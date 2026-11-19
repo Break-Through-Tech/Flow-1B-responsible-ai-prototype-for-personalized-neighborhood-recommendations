@@ -1,0 +1,228 @@
+{
+  "status": "draft_for_advisor_review",
+  "note": "Written before running the engine on any of these profiles. Expected neighborhoods follow the advisor's definitions in eval/neighborhood_zips.json. Do not tune features against this set; evaluate it only after the advisor approves or edits the expected matches. Budgets are total household monthly USD at 2026 rents.",
+  "profiles": [
+    {
+      "profile_id": "H1_solo_walkable_social",
+      "description": "Solo mover, own apartment, wants to walk to bars and restaurants",
+      "budget_max": 2600,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "walkable",
+        "social"
+      ],
+      "expected_neighborhoods": [
+        "Brickell",
+        "Wynwood",
+        "Downtown"
+      ],
+      "not_relevant_neighborhoods": [
+        "Pinecrest"
+      ],
+      "rationale": "Dense, walkable urban core with the city's main nightlife and dining."
+    },
+    {
+      "profile_id": "H2_couple_quiet_transit",
+      "description": "Co-leasers, own apartment, quiet residential streets but near Metrorail",
+      "budget_max": 3600,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "quiet",
+        "transit"
+      ],
+      "expected_neighborhoods": [
+        "Coral Gables",
+        "Coconut Grove"
+      ],
+      "not_relevant_neighborhoods": [
+        "Wynwood"
+      ],
+      "rationale": "Residential neighborhoods served by the Douglas Road, University and Coconut Grove Metrorail stations."
+    },
+    {
+      "profile_id": "H3_couple_pets_quiet_suburban",
+      "description": "Co-leasers with a dog, own apartment, quiet suburban feel",
+      "budget_max": 3400,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "pet_friendly",
+        "quiet"
+      ],
+      "expected_neighborhoods": [
+        "Pinecrest",
+        "Coral Gables"
+      ],
+      "not_relevant_neighborhoods": [
+        "Brickell",
+        "Downtown"
+      ],
+      "rationale": "The advisor's own definition of quiet: quiet residential streets and a suburban feel."
+    },
+    {
+      "profile_id": "H4_solo_brickell_named",
+      "description": "Solo professional who names Brickell, wants transit and social life",
+      "budget_max": 3000,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "transit",
+        "social"
+      ],
+      "near": [
+        "Brickell"
+      ],
+      "expected_neighborhoods": [
+        "Brickell",
+        "Downtown"
+      ],
+      "not_relevant_neighborhoods": [
+        "Pinecrest"
+      ],
+      "rationale": "Explicit location request plus Metromover access."
+    },
+    {
+      "profile_id": "H5_solo_coliving_wynwood",
+      "description": "Solo mover who wants a private bedroom in a shared apartment",
+      "budget_max": 1600,
+      "household": "alone",
+      "housing_preference": "co_living",
+      "tags": [
+        "co_living",
+        "social"
+      ],
+      "expected_neighborhoods": [
+        "Wynwood"
+      ],
+      "not_relevant_neighborhoods": [
+        "Coral Gables",
+        "Pinecrest"
+      ],
+      "rationale": "By the advisor's listing rule, the qualifying co-living properties (Flow Wynwood, i5 Wynwood) are in 33127."
+    },
+    {
+      "profile_id": "H6_couple_walkable_quiet",
+      "description": "Co-leasers who want a walkable village center but calm residential streets",
+      "budget_max": 3800,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "walkable",
+        "quiet"
+      ],
+      "expected_neighborhoods": [
+        "Coconut Grove",
+        "Coral Gables"
+      ],
+      "not_relevant_neighborhoods": [
+        "Downtown"
+      ],
+      "rationale": "Conflicting priorities: walkable village cores (Grove, Miracle Mile) inside residential neighborhoods."
+    },
+    {
+      "profile_id": "H7_solo_low_noise",
+      "description": "Solo renter who specifically wants low road and aircraft noise",
+      "budget_max": 2800,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "low_noise"
+      ],
+      "expected_neighborhoods": [
+        "Pinecrest",
+        "Coral Gables"
+      ],
+      "not_relevant_neighborhoods": [
+        "Downtown",
+        "Brickell"
+      ],
+      "rationale": "The advisor's separate noise measure, for renters who prioritize low noise."
+    },
+    {
+      "profile_id": "H8_couple_social_transit_budget",
+      "description": "Co-leasers on a tighter budget who want transit and social life",
+      "budget_max": 2700,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "social",
+        "transit"
+      ],
+      "expected_neighborhoods": [
+        "Wynwood",
+        "Downtown"
+      ],
+      "not_relevant_neighborhoods": [
+        "Pinecrest"
+      ],
+      "rationale": "The urban core's more affordable ZIPs at 2026 two-bedroom rents."
+    },
+    {
+      "profile_id": "H9_couple_space_value_suburb",
+      "description": "Co-leasers who want more space for the money, a newer building and a pool, and are fine driving",
+      "budget_max": 2800,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "quiet",
+        "pet_friendly"
+      ],
+      "expected_neighborhoods": [
+        "Kendall",
+        "West Kendall",
+        "Doral"
+      ],
+      "not_relevant_neighborhoods": [
+        "Brickell",
+        "Wynwood"
+      ],
+      "rationale": "People move to Kendall and Doral for newer, larger apartments at lower rents than the urban core, with parks and quieter residential streets."
+    },
+    {
+      "profile_id": "H10_solo_airport_commute",
+      "description": "Solo professional working near the airport or in Doral's business district who wants a short commute",
+      "budget_max": 2500,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "walkable",
+        "low_noise"
+      ],
+      "near": [
+        "Doral"
+      ],
+      "expected_neighborhoods": [
+        "Doral"
+      ],
+      "not_relevant_neighborhoods": [
+        "Pinecrest"
+      ],
+      "rationale": "Doral draws people for jobs near the airport and logistics hubs, plus a walkable Downtown Doral center with newer apartments."
+    },
+    {
+      "profile_id": "H11_solo_metrorail_suburb",
+      "description": "Solo renter who wants a calmer suburb but still a Metrorail ride to Downtown",
+      "budget_max": 2300,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": [
+        "transit",
+        "quiet"
+      ],
+      "expected_neighborhoods": [
+        "Kendall",
+        "Coral Gables"
+      ],
+      "not_relevant_neighborhoods": [
+        "Wynwood"
+      ],
+      "rationale": "Kendall's Dadeland stations put the Metrorail within reach of suburban streets, which is why many move there instead of the core."
+    }
+  ],
+  "questions_for_advisor": [
+    "Are these expected neighborhoods right? Please edit before we look at rankings.",
+    "Kendall, West Kendall and Doral were added per your Nov 12 answer (ZIPs in eval/neighborhood_zips.json). Are those the right residential ZIPs?"
+  ]
+}

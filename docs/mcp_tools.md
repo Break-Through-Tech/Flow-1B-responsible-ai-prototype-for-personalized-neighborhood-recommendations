@@ -99,6 +99,17 @@ applied filters, warnings and feature contributions. MCP `content[0].text` conta
 the same JSON for clients that read text content only. No score is a probability
 of satisfaction, and snapshot rents do not establish available units.
 
+Check affordability against `rent_usd` and `rent_basis`, not the retained ACS
+`median_rent_usd` reference. Curated co-living results preserve each property's
+`sources`, `observed`, `confidence` and `notes`; low/unknown-confidence records
+receive an explicit response warning and must not be described as confirmed
+property locations or available units. The ethics policy describes these dated
+snapshots separately from synthetic cards and live availability.
+
+While `quiet` uses the same measure as `low_noise`, requesting both counts that
+measure once at the higher of their requested priorities. The response keeps the
+original requested weights and explains the effective shared priority.
+
 - `ok`: rankings, including shorter-than-k lists when necessary.
 - `no_matches`: a valid request with an empty result list; the budget stays fixed.
 - `needs_clarification`: empty lifestyle tags or conflicting/undefined housing
