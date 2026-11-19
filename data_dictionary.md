@@ -72,6 +72,10 @@ HUD Small Area Fair Market Rents per ZIP and unit size, from Joana's `data/raw/n
 | efficiency, one_bedroom, two_bedroom, three_bedroom, four_bedroom | Monthly rent benchmark, USD |
 | source | Provenance |
 
+## data_sources.json
+
+The source year of each built file: `acs_year`, `zbp_year`, `gazetteer_year`, `noise_year` and `hud_fy`. `refreshed` is the date of the last applied refresh (`null` until the first one). `scripts/refresh_data.py apply` updates it; see `docs/data_refresh.md`.
+
 ## co_living_listings.csv
 
 Hand-curated co-living properties. A property qualifies when it rents a private bedroom with shared living space: the advisor's rule (private bedroom in a shared apartment), widened by Om on Nov 11 to include shared houses. Each property is counted once across listing sites, and ZIPs are confirmed with the Census geocoder. With the census feature set, co-living requests only consider ZIPs with a listed property, and the budget is compared with the lowest per-bedroom "from" price. Prices change and may reflect specials; record `observed` and `sources` when updating.
