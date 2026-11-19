@@ -382,6 +382,20 @@ class TestTagIndex(unittest.TestCase):
         self.assertEqual([e["quote"] for e in tags["nightlife"]["evidence"]], ["quiet at night"])
         self.assertEqual(index["locations"]["44444"]["snippet_count"], 1)
 
+    def test_blank_or_malformed_quotes_cannot_be_published(self):
+        snippets = [snip("Q", "44444", "Busy streets.")]
+        for quote in ("   ", "\t\n", "\u00a0", 123, True):
+            with self.subTest(quote=quote):
+                raw = json.dumps(
+                    {"results": [{"id": "Q", "tags": [{"tag": "quiet", "evidence": quote}]}]}
+                )
+                parsed = parse_response(raw, snippets, VOCAB)
+                self.assertFalse(parsed["Q"]["tags"][0]["evidence_found"])
+                # Re-check cached entries at index time too, not only fresh model output.
+                cached = {"Q": {"tags": [{"tag": "quiet", "evidence": quote}]}}
+                index = build_index(snippets, cached, VOCAB, "fake")
+                self.assertEqual(index["locations"]["44444"]["tags"], {})
+
     def test_mixed_sources_keep_demo_label_per_record(self):
         real = dict(
             snip("R", "55555", "Real review near the beach."), is_demo=False, source="survey"
