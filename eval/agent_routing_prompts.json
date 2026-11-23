@@ -8,6 +8,12 @@
       "household": "with_co_leaser",
       "housing_preference": "own_apartment",
       "tags_contains": ["transit", "walkable"]
+    },
+    "map_filters": {
+      "budget_max": 2500,
+      "household": "with_co_leaser",
+      "housing_preference": "own_apartment",
+      "tags": ["transit", "walkable"]
     }
   },
   {
@@ -43,6 +49,33 @@
       "household": "alone",
       "housing_preference": "co_living",
       "tags_contains": ["transit"]
+    },
+    "map_filters": {
+      "budget_max": 1800,
+      "household": "alone",
+      "housing_preference": "co_living",
+      "tags": ["transit", "co_living"]
+    }
+  },
+  {
+    "prompt_id": "R7",
+    "user_prompt": "I live alone with a budget of $2,000 and want somewhere quiet and pet-friendly. Show the top 5 on the map.",
+    "expected_tools": ["recommend", "update_map"],
+    "expected_args": {
+      "recommend": {
+        "budget_max": 2000,
+        "household": "alone",
+        "housing_preference": "own_apartment",
+        "tags_contains": ["quiet", "pet_friendly"]
+      },
+      "update_map": {}
+    },
+    "map_filters": {
+      "budget_max": 2000,
+      "household": "alone",
+      "housing_preference": "own_apartment",
+      "tags": ["quiet", "pet_friendly"],
+      "k": 5
     }
   }
 ]
