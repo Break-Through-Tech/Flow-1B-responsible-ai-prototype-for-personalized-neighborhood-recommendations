@@ -119,6 +119,21 @@ def evaluate(
     return {"summary": summary, "profiles": rows}
 
 
+def provenance() -> dict:
+    """Run context shared by the Layer 1 and Layer 2 reports."""
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout
+
+    code_paths = sorted(Path(__file__).parent.glob("*.py"))
+    return {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "code_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in code_paths},
+        "git_head": git("rev-parse", "HEAD").strip(),
+        "git_status": git("status", "--porcelain").splitlines(),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default="data")
@@ -143,20 +158,12 @@ def main():
             parser.error(f"neighborhood mapping not found: {args.neighborhoods}")
         neighborhoods = json.loads(args.neighborhoods.read_text(encoding="utf-8"))["neighborhoods"]
     report = evaluate(engine, json.loads(args.profiles.read_text(encoding="utf-8")), neighborhoods)
-    code_paths = sorted(Path(__file__).parent.glob("*.py"))
     report["metadata"] = {
-        "generated_at": datetime.now(UTC).isoformat(),
+        **provenance(),
         "model_version": engine.model_version,
         "feature_set": engine.feature_set,
         "data_sha256": engine.data_version,
-        "code_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in code_paths},
         "profiles_sha256": hashlib.sha256(args.profiles.read_bytes()).hexdigest(),
-        "git_head": subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-        ).stdout.strip(),
-        "git_status": subprocess.run(
-            ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
-        ).stdout.splitlines(),
         "aggregation": "Macro average per profile, separately for k=3 and k=5.",
         "limitations": "Five starter fixtures; demo evidence only; no held-out generalization claim.",
     }
