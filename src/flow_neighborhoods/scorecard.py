@@ -5,10 +5,12 @@
   (mean scorer, census features), both on today's data and profiles, so the two columns
   are comparable. The October numbers in docs/recommender_baseline.md were measured on
   older data and are not copied.
-- Layers 2 and 3 are read from their saved reports. A row counts only if the report
-  came from an LLM run (live or replayed log). Placeholder or hand-written runs, missing
-  reports, and reports scored on an older version of the prompt files show as pending
-  with the reason, instead of a number.
+- Layers 2 and 3 come from one LLM run. ``--run-llm`` runs the model once over every
+  fixture, saves eval/logs/llm_<model>.json, and scores both layers from it; ``--log FILE``
+  re-scores both from a saved run offline. With neither, the reports already in outputs/
+  are read. A row counts only if its report came from an LLM run. Placeholder or
+  hand-written runs, missing reports, and runs on an older version of the prompt files
+  show as pending with the reason, instead of a number.
 
 ``--update-docs`` rewrites the table between the scorecard markers in EVAL_FRAMEWORK.md.
 """
@@ -44,17 +46,44 @@ def layer1(data_dir: Path, profiles: Path, neighborhoods: Path) -> dict:
 def load_report(path: Path, kind: str) -> tuple[dict | None, str | None]:
     """(report, None) when usable for the scorecard, else (None, why it is pending)."""
     if not path.exists():
-        return None, f"no {kind} report yet ({path})"
+        return None, f"no {kind} report yet ({path}); run with --run-llm or --log"
     report = json.loads(path.read_text(encoding="utf-8"))
     meta = report.get("metadata", {})
-    router = meta.get("router") or (meta.get("llm") or {}).get("router", "")
+    llm = meta.get("llm") or {}
+    router = meta.get("router") or llm.get("router", "")
     if "llm:" not in router:
         return None, f"{path.name} is from '{router or 'unknown'}', not an LLM run"
-    for prompt_file, digest in (meta.get("prompts_sha256") or {}).items():
-        current = Path(prompt_file)
-        if current.exists() and hashlib.sha256(current.read_bytes()).hexdigest() != digest:
-            return None, f"{path.name} was scored on an older {current.name}; re-run"
+    # Stale if the files scored now, or the files the model was run on, have changed.
+    for hashes in (meta.get("prompts_sha256"), llm.get("prompts_sha256")):
+        for prompt_file, digest in (hashes or {}).items():
+            current = Path(prompt_file)
+            if current.exists() and hashlib.sha256(current.read_bytes()).hexdigest() != digest:
+                return None, f"{path.name} was scored on an older {current.name}; re-run"
     return report, None
+
+
+def score_llm_run(args) -> None:
+    """Run the model once (--run-llm) or load a saved run (--log), then write both reports."""
+    from . import responses, routing
+
+    if args.run_llm:
+        router = routing.LLMRouter(args.model, args.data_dir)
+        prompts, hashes = routing.load_prompts(routing.ALL_PROMPTS)
+        log_path = routing.default_log(args.model)
+        log = routing.run_llm(router, prompts, hashes, log_path)
+    else:
+        log_path = args.log
+        log = json.loads(log_path.read_text(encoding="utf-8"))
+        if "transcripts" not in log:
+            raise SystemExit(f"{log_path} has no transcripts; it is not an LLMRouter run.")
+    prompts, hashes = routing.load_prompts(routing.ROUTING_PROMPTS)
+    replay = routing.LogRouter.from_log(log, log_path.name)
+    engine = Recommender(args.data_dir)
+    routing.write_report(routing.routing_report(replay, prompts, hashes, engine), args.routing)
+    prompts, hashes = routing.load_prompts(routing.ALL_PROMPTS)
+    report = responses.responses_report(prompts, log, hashes)
+    routing.write_report(report, args.responses)
+    print(f"Scored {log_path} into {args.routing} and {args.responses}")
 
 
 def goal(target: float) -> str:
@@ -128,7 +157,10 @@ def build(args) -> dict:
     ):
         if responses:
             s = responses["summary"]
-            ok = s[metric] is not None and s[metric] >= target
+            if s[metric] is None:  # nothing to judge, e.g. no answer needed a disclosure
+                verdict = "—"
+            else:
+                verdict = "✅" if s[metric] >= target else "❌"
             rows.append(
                 [
                     "LLM",
@@ -136,7 +168,7 @@ def build(args) -> dict:
                     "—",
                     pct(s[metric]),
                     goal(target),
-                    "✅" if ok else "❌",
+                    verdict,
                     f"{s[count]} responses; regex-flagged, spot-check",
                 ]
             )
@@ -196,12 +228,16 @@ def main():
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
     parser.add_argument("--profiles", type=Path, default=Path("eval/recommendation_profiles.json"))
     parser.add_argument("--neighborhoods", type=Path, default=Path("eval/neighborhood_zips.json"))
-    parser.add_argument(
-        "--routing",
-        type=Path,
-        help="Layer 2 report from an LLM run (default: outputs/routing_llm.json, "
-        "else outputs/routing_log.json)",
+    llm = parser.add_mutually_exclusive_group()
+    llm.add_argument(
+        "--run-llm",
+        action="store_true",
+        help="run the model once over every fixture (needs GEMINI_API_KEY), save "
+        "eval/logs/llm_<model>.json, and score Layers 2 and 3 from it",
     )
+    llm.add_argument("--log", type=Path, help="re-score Layers 2 and 3 from a saved run, offline")
+    parser.add_argument("--model", help="Gemini model id for --run-llm")
+    parser.add_argument("--routing", type=Path, default=Path("outputs/routing.json"))
     parser.add_argument("--responses", type=Path, default=Path("outputs/responses.json"))
     parser.add_argument("--output", type=Path, default=Path("outputs/scorecard.md"))
     parser.add_argument(
@@ -212,9 +248,14 @@ def main():
         help="rewrite the scorecard block in this file (default EVAL_FRAMEWORK.md)",
     )
     args = parser.parse_args()
-    if args.routing is None:
-        live, replay = Path("outputs/routing_llm.json"), Path("outputs/routing_log.json")
-        args.routing = live if live.exists() or not replay.exists() else replay
+    if args.run_llm or args.log:
+        from .routing import ROUTER_MODEL
+
+        args.model = args.model or ROUTER_MODEL
+        try:
+            score_llm_run(args)
+        except (RuntimeError, ValueError, FileNotFoundError) as error:
+            parser.error(str(error))
     card = build(args)
     table = markdown(card)
     args.output.parent.mkdir(parents=True, exist_ok=True)

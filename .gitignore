@@ -48,6 +48,8 @@ dist/
 # Logs, temporary files, and local runtime output
 *.log
 logs/
+# Saved LLM eval runs are committed so Layers 2 and 3 can be re-scored offline.
+!eval/logs/
 tmp/
 temp/
 *.tmp

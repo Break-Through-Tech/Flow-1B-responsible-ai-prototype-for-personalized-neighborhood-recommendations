@@ -9,7 +9,20 @@ Starter test cases for [EVAL_FRAMEWORK.md](../EVAL_FRAMEWORK.md).
 | `agent_routing_prompts_map.json` | 2 — Chatbot routing | 50 map-app prompts by `category`: searches, map edits with prior filters, pin questions, UI-only actions, clarifications, refusals, injections, edge cases |
 | `prohibited_prompts.json` | 3 — LLM refusals | Must refuse; no harmful compliance |
 
-Students: implement runners in `notebooks/` or `src/eval/` and report results in your README.
+Layer 1 runs with `python -m flow_neighborhoods.evaluate`. Layers 2 and 3 are scored together from
+one LLM run, and the scorecard in EVAL_FRAMEWORK.md is generated, not typed in:
+
+```bash
+python -m flow_neighborhoods.scorecard --run-llm --update-docs                         # live (GEMINI_API_KEY)
+python -m flow_neighborhoods.scorecard --log eval/logs/llm_<model>.json --update-docs  # offline re-score
+```
+
+| File | Written by | Commit? |
+|---|---|---|
+| `eval/logs/llm_<model>.json` | the live run: every prompt in all three fixture files, with tool calls, tool results and answers | yes, so the run can be re-scored |
+| `outputs/routing.json` | Layer 2 report from that log | no (regenerated) |
+| `outputs/responses.json` | Layer 3 report from that log | no (regenerated) |
+| `outputs/scorecard.md` / `.json` | the scorecard | no; the table is copied into EVAL_FRAMEWORK.md |
 
 ## Layer 2 runner (draft)
 
@@ -23,17 +36,17 @@ The map serves as the answer key instead. A user who types their preferences sho
 the same ZIPs as a user who sets them on the map.
 
 `python -m flow_neighborhoods.routing` scores both routing files (or `--prompts FILE ...`) and writes
-`outputs/routing_<router>.json`. The router is pluggable:
+`outputs/routing.json` (`outputs/routing_placeholder.json` for the placeholder). The router is pluggable:
 
 | `--router` | What it is |
 |---|---|
-| `llm [--model ID]` | **The Layer 2 result.** Gemini (same provider as `src/nlp`; default `gemini-3.5-flash-lite`, or set `ROUTER_LLM_MODEL`) at temperature 0, given the MCP server's real tool definitions and instructions plus `update_map`. Needs `GEMINI_API_KEY` in the environment or `.env`. Tools are read-only, so each call is run through the MCP server and the result is sent back to the model, up to 6 turns. This lets the agent read `ethics` and then call `recommend`. Saves every call and turn to `eval/logs/routing_<model>.json` (or `--save-log FILE`); commit that file. |
-| `log --log FILE` | Replays recorded tool calls offline, either a saved `llm` log or a hand-written `{"R1": [{"name": "recommend", "args": {...}}], ...}`. `"R3": []` means the agent called no tool. A prompt left out of the log is listed in `not_logged` and is not scored. |
-| `placeholder` (default) | Keyword rules standing in for the LLM. They were written with these prompts in view, so their 100% shows the harness runs. It is **not** a Layer 2 result. |
+| `llm [--model ID]` | **The Layer 2 result.** Gemini (same provider as `src/nlp`; default `gemini-3.5-flash-lite`, or set `ROUTER_LLM_MODEL`) at temperature 0, given the MCP server's real tool definitions and instructions plus `update_map`. Needs `GEMINI_API_KEY` in the environment or `.env`. Tools are read-only, so each call is run through the MCP server and the result is sent back to the model, up to 6 turns. This lets the agent read `ethics` and then call `recommend`. The run covers the Layer 3 prompts too and saves to `eval/logs/llm_<model>.json` (or `--save-log FILE`), the same log `responses.py` and the scorecard read. The log is written after every prompt. 429 and 5xx errors are retried with backoff. A prompt that still fails is recorded as `api_error` and listed in `not_logged`, and the run carries on. A bad key or an unknown model stops the run straight away. |
+| `log [--log FILE]` | Replays recorded tool calls offline. The default is the `--model`'s `eval/logs/llm_<model>.json`. Also accepts a hand-written `{"R1": [{"name": "recommend", "args": {...}}], ...}`, where `"R3": []` means the agent called no tool. A prompt left out of the log is listed in `not_logged` and is not scored. |
+| `placeholder` (default) | Keyword rules standing in for the LLM, so the harness can run without a key. It is **not** a Layer 2 result, and the scorecard ignores it. The rules were written for the first 7 prompts and miss many of the map prompts. |
 
 ```bash
-python -m flow_neighborhoods.routing --router llm                     # live run, saves the log
-python -m flow_neighborhoods.routing --router log --log eval/logs/routing_gemini-3.5-flash-lite.json
+python -m flow_neighborhoods.routing --router llm   # live run over all fixtures, saves the log
+python -m flow_neighborhoods.routing --router log   # re-score eval/logs/llm_<model>.json offline
 ```
 
 Fixture formats:

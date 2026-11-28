@@ -108,3 +108,49 @@ def test_update_docs_replaces_only_the_block(tmp_path):
 def test_framework_doc_has_the_scorecard_block():
     text = (ROOT / "EVAL_FRAMEWORK.md").read_text(encoding="utf-8")
     assert scorecard.START in text and scorecard.END in text
+
+
+def test_replayed_log_from_older_prompts_is_stale(tmp_path, monkeypatch):
+    """Replaying an old run on today's files must not look fresh."""
+    monkeypatch.chdir(ROOT)
+    prompts = "eval/agent_routing_prompts.json"
+    digest = hashlib.sha256((ROOT / prompts).read_bytes()).hexdigest()
+    report = {
+        "summary": {},
+        "metadata": {
+            "router": "log:llm_m.json:llm:gemini:m",
+            "prompts_sha256": {prompts: digest},
+            "llm": {"model": "m", "prompts_sha256": {prompts: "0" * 64}},
+        },
+    }
+    card = scorecard.build(args(tmp_path, routing=write(tmp_path / "r.json", report)))
+    assert "older agent_routing_prompts.json" in row(card, "Tool selection accuracy")[6]
+
+
+def test_one_saved_run_fills_layers_2_and_3(tmp_path, monkeypatch):
+    """Fake-model run over every fixture -> one log -> both reports -> scorecard rows."""
+    pytest.importorskip("google.genai")
+    pytest.importorskip("mcp")
+    from google.genai import types
+
+    from flow_neighborhoods import routing
+
+    monkeypatch.chdir(ROOT)
+    answer = types.Content(role="model", parts=[types.Part(text="I can't help with that.")])
+    router = routing.LLMRouter("fake", ROOT / "data", generate=lambda c, cfg: answer)
+    prompts, hashes = routing.load_prompts(routing.ALL_PROMPTS)
+    log = routing.run_llm(router, prompts, hashes, tmp_path / "llm_fake.json")
+    run = Namespace(
+        **vars(args(tmp_path, tmp_path / "routing.json", tmp_path / "responses.json")),
+        run_llm=False,
+        log=tmp_path / "llm_fake.json",
+        model="fake",
+    )
+    scorecard.score_llm_run(run)
+    card = scorecard.build(run)
+    assert row(card, "Tool selection accuracy")[3] not in ("pending", "—")
+    assert row(card, "Refusal rate (prohibited)")[3] == "100%"
+    assert row(card, "Disclosure rate")[3:6] == ["—", "100%", "—"]  # nothing to judge
+    routing_report = json.loads((tmp_path / "routing.json").read_text())
+    assert routing_report["summary"]["scored"] == len(routing_report["prompts"]) == 57
+    assert len(log["transcripts"]) == len(prompts)

@@ -23,6 +23,8 @@ import hashlib
 import json
 import os
 import re
+import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
@@ -49,6 +51,25 @@ RECOMMEND_CHECKS = {
     "weights",
     "near_contains",
 }
+
+# Fixtures. One LLM run covers ALL_PROMPTS and saves one log that both layers score:
+# Layer 2 (this module) scores the routing files, Layer 3 (responses.py) scores all three.
+ROUTING_PROMPTS = [
+    Path("eval/agent_routing_prompts.json"),
+    Path("eval/agent_routing_prompts_map.json"),
+]
+ALL_PROMPTS = [Path("eval/prohibited_prompts.json"), *ROUTING_PROMPTS]
+ROUTING_REPORT = Path("outputs/routing.json")  # Layer 2 from an LLM run, live or replayed
+
+
+def load_prompts(paths: list[Path]) -> tuple[list[dict], dict[str, str]]:
+    """Prompts from every file, and each file's sha256 so stale results can be detected."""
+    prompts = [p for path in paths for p in json.loads(path.read_text(encoding="utf-8"))]
+    ids = [p["prompt_id"] for p in prompts]
+    if len(ids) != len(set(ids)):
+        raise ValueError("prompt_id values repeat across the prompt files.")
+    hashes = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
+    return prompts, hashes
 
 
 @dataclass(frozen=True)
@@ -257,14 +278,17 @@ class LogRouter:
         }
 
     @classmethod
-    def from_file(cls, path: Path) -> "LogRouter":
+    def from_log(cls, data: dict, name: str = "log") -> "LogRouter":
         """A bare {prompt_id: calls} map, or an LLMRouter log with metadata and calls."""
-        data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data.get("calls"), dict) and "metadata" in data:
-            router = cls(data["calls"], kind=f"log:{path.name}:{data['metadata']['router']}")
+            router = cls(data["calls"], kind=f"log:{name}:{data['metadata']['router']}")
             router.metadata = data["metadata"]
             return router
-        return cls(data, kind=f"log:{path.name}")
+        return cls(data, kind=f"log:{name}")
+
+    @classmethod
+    def from_file(cls, path: Path) -> "LogRouter":
+        return cls.from_log(json.loads(path.read_text(encoding="utf-8")), path.name)
 
     def route(
         self, user_prompt: str, prompt_id: str | None = None, context: dict | None = None
@@ -274,6 +298,19 @@ class LogRouter:
 
 ROUTER_MODEL = os.environ.get("ROUTER_LLM_MODEL", "gemini-3.5-flash-lite")
 MAX_TURNS = 6  # model turns per prompt; ethics first, then the real call, then an answer
+RETRY_CODES = {429, 500, 502, 503, 504}  # rate limits and server hiccups; others fail fast
+RETRY_DELAYS = (2, 4, 8, 16, 32)  # seconds
+
+
+def default_log(model: str = ROUTER_MODEL) -> Path:
+    """The one saved run that Layer 2 and Layer 3 both score."""
+    return Path(f"eval/logs/llm_{model}.json")
+
+
+class TransientAPIError(RuntimeError):
+    """The model API kept failing with a retryable error; that prompt is left unscored."""
+
+
 APP_PROMPT = """You are the chat assistant in a Miami-Dade neighborhood finder for people \
 relocating. Answer only with the tools below. The app also has a map that the user can \
 filter by budget, household, housing type and priorities. When the user asks to see or \
@@ -314,8 +351,10 @@ class LLMRouter:
     runs in the app, so it is acknowledged, not executed. The loop ends when the model
     answers in text or after ``MAX_TURNS``.
 
-    ``generate`` is injectable: any callable (contents, config) -> Content works, so tests
-    run offline with no API key. ``transcripts`` keeps every turn for the saved log.
+    ``generate`` is injectable: any callable (contents, config) -> Content (or None for an
+    empty or blocked reply) works, so tests run offline with no API key. Raising
+    ``TransientAPIError`` marks that prompt as not logged instead of ending the run.
+    ``transcripts`` keeps every turn for the saved log.
     """
 
     def __init__(
@@ -369,18 +408,29 @@ class LLMRouter:
             key = api_key()
             if not key:
                 raise RuntimeError(
-                    "GEMINI_API_KEY is not set (env var or .env). Use --router log to "
-                    "re-score a saved run offline."
+                    "GEMINI_API_KEY is not set (env var or .env). To re-score a saved run "
+                    "offline, pass its log: scorecard --log FILE or --router log."
                 )
             from google import genai
+            from google.genai import errors
 
             client = genai.Client(api_key=key)
 
             def generate(contents, config):
-                response = client.models.generate_content(
-                    model=model, contents=contents, config=config
-                )
-                return response.candidates[0].content
+                for attempt, delay in enumerate((*RETRY_DELAYS, None)):
+                    try:
+                        response = client.models.generate_content(
+                            model=model, contents=contents, config=config
+                        )
+                        break
+                    except errors.APIError as error:
+                        if error.code not in RETRY_CODES:
+                            raise  # bad key, unknown model, bad request: stop the run
+                        if delay is None:
+                            raise TransientAPIError(f"{error.code} after {attempt} retries")
+                        time.sleep(delay)
+                # A blocked or empty reply has no candidates or no content.
+                return response.candidates[0].content if response.candidates else None
 
         self.generate = generate
         self.transcripts: dict[str, list[dict]] = {}
@@ -417,7 +467,19 @@ class LLMRouter:
 
     def route(
         self, user_prompt: str, prompt_id: str | None = None, context: dict | None = None
-    ) -> list[ToolCall]:
+    ) -> list[ToolCall] | None:
+        key = prompt_id or user_prompt
+        self.inputs[key] = {"user_prompt": user_prompt, "context": context}
+        try:
+            calls, transcript = self.converse(user_prompt, context)
+        except TransientAPIError as error:
+            # Kept in the log so the gap is visible; scored as not_logged by both layers.
+            self.transcripts[key] = [{"api_error": str(error)}]
+            return None
+        self.transcripts[key] = transcript
+        return calls
+
+    def converse(self, user_prompt: str, context: dict | None) -> tuple[list, list]:
         types = self.types
         state = app_state(context)
         parts = ([types.Part(text=state)] if state else []) + [types.Part(text=user_prompt)]
@@ -426,6 +488,9 @@ class LLMRouter:
         for _ in range(MAX_TURNS):
             # The model's turn is sent back unchanged so thought signatures survive.
             reply = self.generate(contents, self.config)
+            if reply is None:  # blocked or empty: no answer for the user
+                transcript.append({"answer": "", "empty_reply": True})
+                break
             contents.append(reply)
             parts = reply.parts or []
             requested = [p.function_call for p in parts if p.function_call]
@@ -439,26 +504,49 @@ class LLMRouter:
                 calls.append(call)
                 result = self.run_tool(call)
                 # Results are kept so Layer 3 can check the answer against them.
-                transcript.append({"call": {"name": call.name, "args": call.args}, "result": result})
+                transcript.append(
+                    {"call": {"name": call.name, "args": call.args}, "result": result}
+                )
                 responses.append(types.Part.from_function_response(name=call.name, response=result))
             contents.append(types.Content(role="user", parts=responses))
         else:
             transcript.append({"stopped": f"no text answer after {MAX_TURNS} turns"})
-        self.transcripts[prompt_id or user_prompt] = transcript
-        self.inputs[prompt_id or user_prompt] = {"user_prompt": user_prompt, "context": context}
-        return calls
+        return calls, transcript
 
     def log(self) -> dict:
-        """Calls in LogRouter format, plus what produced them."""
+        """Calls in LogRouter format, plus what produced them. Failed prompts have no calls."""
         return {
             "metadata": {"router": self.kind, **self.fingerprint()},
             "calls": {
                 pid: [t["call"] for t in turns if "call" in t]
                 for pid, turns in self.transcripts.items()
+                if not failed(turns)
             },
             "transcripts": self.transcripts,
             "inputs": self.inputs,
         }
+
+
+def failed(turns: list[dict]) -> bool:
+    """The model API never answered this prompt, so there is nothing to score."""
+    return any("api_error" in turn for turn in turns)
+
+
+def run_llm(router: LLMRouter, prompts: list[dict], prompts_sha256: dict, log_path: Path) -> dict:
+    """The one live run: every prompt through the model, the log saved after each prompt.
+
+    Saving as it goes means a crash or Ctrl-C keeps what finished; re-score that partial
+    log with --router log and the missing prompts show as not_logged.
+    """
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    for i, item in enumerate(prompts, 1):
+        print(f"[{i}/{len(prompts)}] {item['prompt_id']}", file=sys.stderr, flush=True)
+        router.route(item["user_prompt"], item["prompt_id"], item.get("context"))
+        log = router.log()
+        log["metadata"]["prompts_sha256"] = prompts_sha256
+        log_path.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
+    print(f"Saved conversations to {log_path}", file=sys.stderr)
+    return log
 
 
 # --- Scoring ----------------------------------------------------------------------------
@@ -699,59 +787,19 @@ def evaluate_routing(
     return {"summary": summary, "prompts": rows}
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Layer 2: MCP tool routing evaluation")
-    parser.add_argument("--router", choices=["placeholder", "log", "llm"], default="placeholder")
-    parser.add_argument("--log", type=Path, help="recorded calls for --router log")
-    parser.add_argument(
-        "--prompts",
-        type=Path,
-        nargs="+",
-        default=[
-            Path("eval/agent_routing_prompts.json"),
-            Path("eval/agent_routing_prompts_map.json"),
-        ],
-        help="one or more fixture files; prompt_ids must be unique across them",
-    )
-    parser.add_argument("--data-dir", default="data")
-    parser.add_argument("--output", type=Path, help="default: outputs/routing_<router>.json")
-    parser.add_argument("--model", default=ROUTER_MODEL, help="Gemini model id for --router llm")
-    parser.add_argument(
-        "--save-log",
-        type=Path,
-        help="where --router llm saves its calls (default: eval/logs/routing_<model>.json); "
-        "replay with --router log --log FILE",
-    )
-    args = parser.parse_args()
-    if args.router == "log" and not args.log:
-        parser.error("--router log needs --log FILE")
-    try:
-        router = {
-            "placeholder": lambda: PlaceholderRouter(args.data_dir),
-            "log": lambda: LogRouter.from_file(args.log),
-            "llm": lambda: LLMRouter(args.model, args.data_dir),
-        }[args.router]()
-    except RuntimeError as error:
-        parser.error(str(error))
-    engine = Recommender(args.data_dir)
-    prompts = [p for path in args.prompts for p in json.loads(path.read_text(encoding="utf-8"))]
-    ids = [p["prompt_id"] for p in prompts]
-    if len(ids) != len(set(ids)):
-        parser.error("prompt_id values repeat across --prompts files.")
-    prompts_sha256 = {
-        str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in args.prompts
-    }
+def routing_report(
+    router: Router, prompts: list[dict], prompts_sha256: dict, engine: Recommender
+) -> dict:
+    """The Layer 2 report: scores plus what produced them.
+
+    ``prompts_sha256`` is the files scored now. For an LLM run, ``llm.prompts_sha256`` is
+    the files the model was run on; the scorecard treats a mismatch with either as stale.
+    """
     report = evaluate_routing(router, prompts, engine)
-    llm = (
-        router.fingerprint() if isinstance(router, LLMRouter) else getattr(router, "metadata", None)
-    )
     if isinstance(router, LLMRouter):
-        log_path = args.save_log or Path(f"eval/logs/routing_{args.model}.json")
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        log = router.log()
-        log["metadata"]["prompts_sha256"] = prompts_sha256
-        log_path.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
-        print(f"Saved calls to {log_path}")
+        llm = {**router.fingerprint(), "prompts_sha256": prompts_sha256}
+    else:
+        llm = getattr(router, "metadata", None)
     report["metadata"] = {
         **provenance(),
         "router": router.kind,
@@ -762,13 +810,14 @@ def main():
         "ethics is ignored unless expected (agents may read policy first), so "
         "expected_tool null passes only if nothing but ethics was called. update_map is "
         "ignored next to an expected recommend (recommend already refreshes the map) unless "
-        "update_map is itself expected. Unlogged prompts "
-        "are listed in not_logged and excluded from every rate.",
+        "update_map is itself expected. Unlogged prompts (including any the model API "
+        "never answered) are listed in not_logged and excluded from every rate.",
         "arg_rule": "recommend: exact budget_max, household and housing_preference; expected "
         "tags a subset of those sent; tags_excludes not sent; k exact (default 3); expected "
-        "weights equal (unsent = 1); near_contains sent by name; and the args must pass the recommend input contract "
-        "(Request.parse), which is stricter than EVAL_FRAMEWORK.md. recommend not called "
-        "counts as wrong arguments. Other tools: exact match on expected keys, first call.",
+        "weights equal (unsent = 1); near_contains sent by name; and the args must pass the "
+        "recommend input contract (Request.parse), which is stricter than EVAL_FRAMEWORK.md. "
+        "recommend not called counts as wrong arguments. Other tools: exact match on "
+        "expected keys, first call.",
         "parity_rule": "Prompts with map_filters (the map settings for the same intent). "
         "request_match: the chat's recommend args rank the same request as the map (same "
         "budget, household, housing, tags, weights and places; k ignored). results_match: "
@@ -782,9 +831,75 @@ def main():
             else ""
         ),
     }
-    output = args.output or Path(f"outputs/routing_{args.router}.json")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    return report
+
+
+def write_report(report: dict, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Layer 2: MCP tool routing evaluation. To run the model once and score "
+        "Layers 2 and 3 together, use python -m flow_neighborhoods.scorecard --run-llm."
+    )
+    parser.add_argument("--router", choices=["placeholder", "log", "llm"], default="placeholder")
+    parser.add_argument(
+        "--log",
+        type=Path,
+        help="saved run for --router log (default: the --model's eval/logs/llm_<model>.json)",
+    )
+    parser.add_argument(
+        "--prompts",
+        type=Path,
+        nargs="+",
+        default=ROUTING_PROMPTS,
+        help="fixture files to score; prompt_ids must be unique across them",
+    )
+    parser.add_argument("--data-dir", default="data")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help=f"default: {ROUTING_REPORT} for llm/log, outputs/routing_placeholder.json otherwise",
+    )
+    parser.add_argument("--model", default=ROUTER_MODEL, help="Gemini model id for --router llm")
+    parser.add_argument(
+        "--save-log",
+        type=Path,
+        help="where --router llm saves the run (default: eval/logs/llm_<model>.json). The "
+        "run also covers the Layer 3 prompts, so responses.py can score the same log.",
+    )
+    args = parser.parse_args()
+    try:
+        prompts, prompts_sha256 = load_prompts(args.prompts)
+    except ValueError as error:
+        parser.error(str(error))
+    engine = Recommender(args.data_dir)
+    if args.router == "placeholder":
+        router = PlaceholderRouter(args.data_dir)
+    elif args.router == "log":
+        log_path = args.log or default_log(args.model)
+        if not log_path.exists():
+            parser.error(f"{log_path} does not exist; run --router llm first or pass --log.")
+        router = LogRouter.from_file(log_path)
+    else:
+        try:
+            live = LLMRouter(args.model, args.data_dir)
+        except RuntimeError as error:
+            parser.error(str(error))
+        # One run over every fixture, so the same log also feeds Layer 3.
+        run_files = list(dict.fromkeys([*ALL_PROMPTS, *args.prompts]))
+        run_prompts, run_sha256 = load_prompts(run_files)
+        log_path = args.save_log or default_log(args.model)
+        log = run_llm(live, run_prompts, run_sha256, log_path)
+        router = LogRouter.from_log(log, log_path.name)
+    report = routing_report(router, prompts, prompts_sha256, engine)
+    default = (
+        ROUTING_REPORT if args.router != "placeholder" else Path("outputs/routing_placeholder.json")
+    )
+    output = args.output or default
+    write_report(report, output)
     print(json.dumps(report["summary"], indent=2))
     print(f"Saved {output}")
 

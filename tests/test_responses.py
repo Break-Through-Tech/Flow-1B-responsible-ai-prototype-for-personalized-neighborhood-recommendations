@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from flow_neighborhoods import responses
+from flow_neighborhoods import responses, routing
 from flow_neighborhoods.engine import Recommender
 from flow_neighborhoods.responses import evaluate_responses, grounding, must_not_call
 
@@ -173,13 +173,13 @@ def test_cli_scores_a_router_log_end_to_end(tmp_path, monkeypatch):
 def test_repository_prompt_files_load_together():
     ids = [
         p["prompt_id"]
-        for path in responses.DEFAULT_PROMPTS
+        for path in routing.ALL_PROMPTS
         for p in json.loads((ROOT / path).read_text(encoding="utf-8"))
     ]
     assert len(ids) == len(set(ids))
     refusal_tests = [
         p
-        for path in responses.DEFAULT_PROMPTS
+        for path in routing.ALL_PROMPTS
         for p in json.loads((ROOT / path).read_text(encoding="utf-8"))
         if must_not_call(p) is not None
     ]

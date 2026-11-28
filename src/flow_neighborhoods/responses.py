@@ -19,7 +19,6 @@ the exact claims so the spot-check is quick.
 """
 
 import argparse
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -178,7 +177,7 @@ def evaluate_responses(prompts: list[dict], log: dict) -> dict:
     rows, not_logged = [], []
     for item in prompts:
         turns = transcripts.get(item["prompt_id"])
-        if turns is None:
+        if turns is None or any("api_error" in turn for turn in turns):
             not_logged.append(item["prompt_id"])
             continue
         sent = inputs.get(item["prompt_id"], {})
@@ -234,52 +233,8 @@ def evaluate_responses(prompts: list[dict], log: dict) -> dict:
     return {"summary": summary, "prompts": rows}
 
 
-DEFAULT_PROMPTS = [
-    Path("eval/prohibited_prompts.json"),
-    Path("eval/agent_routing_prompts.json"),
-    Path("eval/agent_routing_prompts_map.json"),
-]
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Layer 3: LLM response quality")
-    parser.add_argument("--router", choices=["llm", "log"], default="log")
-    parser.add_argument("--log", type=Path, help="saved LLM log to score (--router log)")
-    parser.add_argument("--prompts", type=Path, nargs="+", default=DEFAULT_PROMPTS)
-    parser.add_argument("--data-dir", default="data")
-    parser.add_argument("--model", help="Gemini model id for --router llm")
-    parser.add_argument("--save-log", type=Path, help="default: eval/logs/responses_<model>.json")
-    parser.add_argument("--output", type=Path, default=Path("outputs/responses.json"))
-    args = parser.parse_args()
-    prompts = [p for path in args.prompts for p in json.loads(path.read_text(encoding="utf-8"))]
-    ids = [p["prompt_id"] for p in prompts]
-    if len(ids) != len(set(ids)):
-        parser.error("prompt_id values repeat across --prompts files.")
-    prompts_sha256 = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in args.prompts}
-
-    if args.router == "log":
-        if not args.log:
-            parser.error("--router log needs --log FILE (an LLMRouter log with transcripts)")
-        log = json.loads(args.log.read_text(encoding="utf-8"))
-        if "transcripts" not in log:
-            parser.error(f"{args.log} has no transcripts; re-run with --router llm.")
-    else:
-        from .routing import ROUTER_MODEL, LLMRouter
-
-        model = args.model or ROUTER_MODEL
-        try:
-            router = LLMRouter(model, args.data_dir)
-        except RuntimeError as error:
-            parser.error(str(error))
-        for item in prompts:
-            router.route(item["user_prompt"], item["prompt_id"], item.get("context"))
-        log = router.log()
-        log["metadata"]["prompts_sha256"] = prompts_sha256
-        log_path = args.save_log or Path(f"eval/logs/responses_{model}.json")
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        log_path.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
-        print(f"Saved conversations to {log_path}")
-
+def responses_report(prompts: list[dict], log: dict, prompts_sha256: dict) -> dict:
+    """The Layer 3 report: scores plus what produced them."""
     report = evaluate_responses(prompts, log)
     report["metadata"] = {
         **provenance(),
@@ -298,6 +253,52 @@ def main():
         "limitations": f"{len(prompts)} prompts, single run at temperature 0; regex "
         "checks flag claims for human review and do not judge paraphrased facts.",
     }
+    return report
+
+
+RESPONSES_REPORT = Path("outputs/responses.json")
+
+
+def main():
+    from .routing import ALL_PROMPTS, ROUTER_MODEL, LLMRouter, default_log, load_prompts, run_llm
+
+    parser = argparse.ArgumentParser(
+        description="Layer 3: LLM response quality. To run the model once and score Layers "
+        "2 and 3 together, use python -m flow_neighborhoods.scorecard --run-llm."
+    )
+    parser.add_argument("--router", choices=["llm", "log"], default="log")
+    parser.add_argument(
+        "--log",
+        type=Path,
+        help="saved run to score (default: the --model's "
+        "eval/logs/llm_<model>.json, the same log routing.py writes)",
+    )
+    parser.add_argument("--prompts", type=Path, nargs="+", default=ALL_PROMPTS)
+    parser.add_argument("--data-dir", default="data")
+    parser.add_argument("--model", default=ROUTER_MODEL, help="Gemini model id")
+    parser.add_argument("--save-log", type=Path, help="default: eval/logs/llm_<model>.json")
+    parser.add_argument("--output", type=Path, default=RESPONSES_REPORT)
+    args = parser.parse_args()
+    try:
+        prompts, prompts_sha256 = load_prompts(args.prompts)
+    except ValueError as error:
+        parser.error(str(error))
+
+    if args.router == "log":
+        log_path = args.log or default_log(args.model)
+        if not log_path.exists():
+            parser.error(f"{log_path} does not exist; run --router llm first or pass --log.")
+        log = json.loads(log_path.read_text(encoding="utf-8"))
+        if "transcripts" not in log:
+            parser.error(f"{log_path} has no transcripts; re-run with --router llm.")
+    else:
+        try:
+            router = LLMRouter(args.model, args.data_dir)
+        except RuntimeError as error:
+            parser.error(str(error))
+        log = run_llm(router, prompts, prompts_sha256, args.save_log or default_log(args.model))
+
+    report = responses_report(prompts, log, prompts_sha256)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     print(json.dumps(report["summary"], indent=2))
